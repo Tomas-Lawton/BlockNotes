@@ -1,4 +1,5 @@
 // Content script for BlockNotes Chrome Extension
+// Updated: localStorage support + improved positioning
 
 // ============================================
 // STATE
@@ -68,135 +69,133 @@ function isInput(el) {
 // ============================================
 // INPUT DETECTION
 // ============================================
+// function handleInput(event) {
+//   if (!isInput(event.target)) return;
+
+//   const value = getValue(event.target);
+//   const previousValue = state.previousValue;
+
+//   // Update previous value
+//   state.previousValue = value;
+
+//   // If popup is open, check if slash was deleted
+//   if (state.isPopupOpen) {
+//     if (!value.includes("/")) {
+//       closePopup();
+//     }
+//     return;
+//   }
+
+//   const lastChar = value[value.length - 1];
+//   const prevLastChar = previousValue[previousValue.length - 1];
+
+//   const justTypedSlash = lastChar === "/" && prevLastChar !== "/";
+
+//   if (justTypedSlash) {
+//     state.lastSlashDetected = true;
+//     state.lastFocusedElement = event.target;
+
+//     setTimeout(() => {
+//       chrome.storage.local.get(["settings", "notes"], (data) => {
+//         const settings = data.settings || {};
+//         state.notes = data.notes || {};
+
+//         if (settings.enableSlashCommand !== false) {
+//           showPopup();
+//         }
+//       });
+//     }, 50);
+//   }
+// }
+
 function handleInput(event) {
   if (!isInput(event.target)) return;
 
   const value = getValue(event.target);
   const previousValue = state.previousValue;
-
-  // Update previous value
   state.previousValue = value;
 
-  // If popup is open, check if slash was deleted
+  const lastChar = value[value.length - 1];
+  const prevLastChar = previousValue[previousValue.length - 1];
+
+  // --- Close popup if space typed right after slash ---
   if (state.isPopupOpen) {
+    const lastSlashIndex = value.lastIndexOf("/");
+    const lastSpaceIndex = value.lastIndexOf(" ");
+    // close only if space immediately follows last slash
+    if (lastSlashIndex >= 0 && lastSpaceIndex === lastSlashIndex + 1) {
+      closePopup();
+      return;
+    }
     if (!value.includes("/")) {
       closePopup();
     }
     return;
   }
 
-  // Detect if a NEW slash was just typed
-  const currentHasSlash = value.includes("/");
+  // --- Detect fresh slash ---
   const justTypedSlash =
-    currentHasSlash &&
-    (!previousValue.includes("/") ||
-      value.lastIndexOf("/") !== previousValue.lastIndexOf("/"));
+    lastChar === "/" && prevLastChar !== "/" && prevLastChar !== " ";
 
   if (justTypedSlash) {
     state.lastSlashDetected = true;
     state.lastFocusedElement = event.target;
 
     setTimeout(() => {
-      chrome.storage.sync.get(["settings", "notes"], (data) => {
-        if (data.settings?.useSlashWithCtrl) return;
-        if (!data.notes || Object.keys(data.notes).length === 0) return;
-
-        state.notes = data.notes;
-        showPopup();
+      chrome.storage.local.get(["settings", "notes"], (data) => {
+        const settings = data.settings || {};
+        state.notes = data.notes || {};
+        if (settings.enableSlashCommand !== false) {
+          showPopup();
+        }
       });
-    }, 30);
-  } else if (!currentHasSlash) {
-    state.lastSlashDetected = false;
+    }, 50);
   }
 }
 
 function getValue(el) {
-  // Special handling for Google search
-  if (
-    el.getAttribute("aria-label")?.includes("Search") ||
-    el.getAttribute("role") === "combobox"
-  ) {
-    return el.value || el.textContent || el.innerText || "";
-  }
-  return el.value || el.textContent || "";
+  if (!el) return "";
+  return el.tagName === "INPUT" || el.tagName === "TEXTAREA"
+    ? el.value
+    : el.textContent;
 }
 
 // ============================================
-// KEYBOARD
+// KEYBOARD HANDLING
 // ============================================
-let ctrlPressed = false;
-
 function handleGlobalKeydown(event) {
-  if (event.key === "Control" || event.key === "Meta") {
-    ctrlPressed = true;
-  }
-
-  // Ctrl+/ trigger
-  if (ctrlPressed && event.key === "/" && !state.isPopupOpen) {
-    if (!isInput(document.activeElement)) return;
-
-    chrome.storage.sync.get(["settings", "notes"], (data) => {
-      if (!data.settings?.useSlashWithCtrl) return;
-      if (!data.notes || Object.keys(data.notes).length === 0) return;
-
-      event.preventDefault();
-      state.lastFocusedElement = document.activeElement;
-      state.notes = data.notes;
-      insertSlash();
-      setTimeout(showPopup, 20);
-    });
+  if (state.isPopupOpen) {
+    handlePopupKeydown(event);
   }
 }
 
 function handleGlobalKeyup(event) {
-  if (event.key === "Control" || event.key === "Meta") {
-    ctrlPressed = false;
+  if (event.key === "/") {
+    state.lastSlashDetected = true;
   }
-}
-
-function insertSlash() {
-  const el = state.lastFocusedElement;
-  if (!el) return;
-
-  if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
-    const start = el.selectionStart || 0;
-    const text = el.value || "";
-    el.value = text.substring(0, start) + "/" + text.substring(start);
-    el.selectionStart = el.selectionEnd = start + 1;
-    state.previousValue = el.value;
-  } else if (el.isContentEditable) {
-    document.execCommand("insertText", false, "/");
-    state.previousValue = getValue(el);
-  }
-
-  el.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
 // ============================================
 // DRAG FUNCTIONALITY
 // ============================================
 function handleDragStart(event, header) {
-  if (event.target.tagName === "BUTTON") return; // Don't drag when clicking close button
+  if (event.button !== 0) return;
+
+  event.preventDefault();
+  event.stopPropagation();
 
   state.isDragging = true;
   state.dragStartX = event.clientX;
   state.dragStartY = event.clientY;
 
-  // Get current popup position
-  const popup = state.popupContainer;
-  const rect = popup.getBoundingClientRect();
+  const rect = state.popupContainer.getBoundingClientRect();
   state.popupStartX = rect.left;
   state.popupStartY = rect.top;
 
-  // Add dragging cursor
   header.style.cursor = "grabbing";
-  popup.style.transition = "none";
 
-  // Attach move and up listeners
   document.addEventListener("mousemove", handleDragMove);
   document.addEventListener("mouseup", handleDragEnd);
-
-  event.preventDefault();
 }
 
 function handleDragMove(event) {
@@ -208,15 +207,11 @@ function handleDragMove(event) {
   const newX = state.popupStartX + deltaX;
   const newY = state.popupStartY + deltaY;
 
-  // Update popup position
-  const popup = state.popupContainer;
-  popup.style.left = `${newX}px`;
-  popup.style.top = `${newY}px`;
-  popup.style.right = "auto";
-  popup.style.bottom = "auto";
+  state.popupContainer.style.left = `${newX}px`;
+  state.popupContainer.style.top = `${newY}px`;
 }
 
-function handleDragEnd(event) {
+function handleDragEnd() {
   if (!state.isDragging) return;
 
   state.isDragging = false;
@@ -232,9 +227,6 @@ function handleDragEnd(event) {
   document.removeEventListener("mouseup", handleDragEnd);
 }
 
-// ============================================
-// POPUP
-// ============================================
 function showPopup() {
   if (state.isPopupOpen || !state.lastFocusedElement) return;
 
@@ -334,59 +326,61 @@ function showPopup() {
 function getPopupStyles() {
   const rect = state.lastFocusedElement.getBoundingClientRect();
   const viewportHeight = window.innerHeight;
+  const viewportWidth = window.innerWidth;
   const maxHeight = 320;
-  const width = Math.min(380, window.innerWidth - 40);
+  const width = Math.min(380, viewportWidth - 40);
+  const spacing = 8;
 
-  // Get cursor position within the input
+  // Always start from the input's actual position
   let cursorX = rect.left;
-  let cursorY = rect.top;
+  let cursorY = rect.bottom; // Use bottom of input as reference
 
-  // Try to get more precise cursor position
-  if (
-    state.lastFocusedElement.tagName === "INPUT" ||
-    state.lastFocusedElement.tagName === "TEXTAREA"
-  ) {
+  // Try to get precise cursor position for inputs
+  if (state.lastFocusedElement.tagName === "INPUT") {
     const el = state.lastFocusedElement;
+    const cursorPos = el.selectionStart || 0;
 
-    // Create a temporary span to measure cursor position
+    // Measure horizontal cursor position
     const span = document.createElement("span");
     span.style.cssText = `
       position: absolute;
       visibility: hidden;
       white-space: pre;
       font: ${window.getComputedStyle(el).font};
-      padding: ${window.getComputedStyle(el).padding};
     `;
-
-    const value = el.value || "";
-    const cursorPos = el.selectionStart || 0;
-    span.textContent = value.substring(0, cursorPos);
+    span.textContent = el.value.substring(0, cursorPos);
     document.body.appendChild(span);
-
     const spanWidth = span.getBoundingClientRect().width;
     document.body.removeChild(span);
 
-    cursorX = rect.left + spanWidth;
+    const paddingLeft = parseInt(
+      window.getComputedStyle(el).paddingLeft || "0"
+    );
+    // cursorX = rect.left + spanWidth + paddingLeft;
+    cursorX = rect.left;
   }
 
-  // Default position below
-  let top = rect.bottom + 6;
+  // Default: position below input
+  let top = cursorY + spacing;
   let left = cursorX;
 
-  // Check if popup would go below viewport
-  if (top + maxHeight > viewportHeight - 20) {
-    // Position above instead
-    top = rect.top - maxHeight - 6;
+  // Check if there's enough space below
+  const spaceBelow = viewportHeight - top;
 
-    // If still doesn't fit, position at top of viewport
+  // If not enough space below, position directly above input
+  if (spaceBelow < 200) {
+    // Position so bottom of popup touches top of input
+    top = rect.top - 130; // Just above input with small spacing
+
+    // If that's too high, keep it below
     if (top < 20) {
-      top = 20;
+      top = cursorY + spacing;
     }
   }
 
   // Keep popup in horizontal bounds
-  if (left + width > window.innerWidth - 20) {
-    left = window.innerWidth - width - 20;
+  if (left + width > viewportWidth - 20) {
+    left = viewportWidth - width - 20;
   }
   if (left < 20) {
     left = 20;
@@ -446,16 +440,26 @@ function extractQuery() {
 }
 
 function filterNotes(query) {
+  console.log(query);
   // Normalize query for better matching
   const normalizedQuery = query.toLowerCase();
 
   return Object.values(state.notes)
     .filter((note) => {
+      console.log(note);
       if (!normalizedQuery) return true;
 
       const name = (note.noteName || "").toLowerCase();
       const text = (note.noteText || "").toLowerCase();
 
+      console.log(
+        name || "problem",
+        text || "problem",
+        normalizedQuery || "problem"
+      );
+      console.log(
+        name.includes(normalizedQuery) || text.includes(normalizedQuery)
+      );
       // Match if query appears anywhere in name or text
       return name.includes(normalizedQuery) || text.includes(normalizedQuery);
     })

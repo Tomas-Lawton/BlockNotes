@@ -8,19 +8,19 @@ document.addEventListener("DOMContentLoaded", function () {
   const aiCard = document.getElementById("auto-name-setting");
 
   // Load settings
-  chrome.storage.sync.get("settings", (data) => {
+  chrome.storage.local.get("settings", (data) => {
     slashCheckbox.checked = data.settings?.useSlashWithCtrl ?? false;
   });
 
   // Toggle slash command mode
   slashCheckbox.addEventListener("change", () => {
     const isEnabled = slashCheckbox.checked;
-    chrome.storage.sync.get("settings", (data) => {
+    chrome.storage.local.get("settings", (data) => {
       const updatedSettings = {
         ...data.settings,
         useSlashWithCtrl: isEnabled,
       };
-      chrome.storage.sync.set({ settings: updatedSettings });
+      chrome.storage.local.set({ settings: updatedSettings });
     });
   });
 
@@ -67,12 +67,12 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
       }
 
-      chrome.storage.sync.get("settings", (data) => {
+      chrome.storage.local.get("settings", (data) => {
         const updatedSettings = {
           ...data.settings,
           key: AIKEY,
         };
-        chrome.storage.sync.set({ settings: updatedSettings });
+        chrome.storage.local.set({ settings: updatedSettings });
 
         // Show success feedback
         saveButton.textContent = "✓ SAVED";
@@ -98,53 +98,6 @@ document.addEventListener("DOMContentLoaded", function () {
   openButton.addEventListener("click", function () {
     chrome.tabs.create({});
   });
-
-  // Load and display notes
-  // chrome.storage.sync.get("notes", (data) => {
-  //   const notes = data.notes || {};
-  //   notesList.innerHTML = "";
-
-  //   if (Object.keys(notes).length > 0) {
-  //     // Sort notes by displayIndex
-  //     const sortedNotes = Object.entries(notes).sort(
-  //       ([, a], [, b]) => (b.displayIndex || 0) - (a.displayIndex || 0)
-  //     );
-
-  //     sortedNotes.forEach(([key, note]) => {
-  //       const li = document.createElement("li");
-
-  //       const iconWrapper = document.createElement("div");
-  //       iconWrapper.classList.add("note-icon-wrapper");
-
-  //       const icon = document.createElement("img");
-  //       icon.src = "./public/uicons/uicons-round-medium-outline-tray-in.svg";
-  //       icon.classList.add("note-icon");
-
-  //       iconWrapper.appendChild(icon);
-  //       li.appendChild(iconWrapper);
-
-  //       // Create note text with truncation
-  //       const noteSpan = document.createElement("span");
-  //       const noteName = note.noteName || `Note ${note.noteIndex + 1}`;
-  //       noteSpan.textContent =
-  //         noteName.length > 30 ? noteName.substring(0, 30) + "..." : noteName;
-  //       noteSpan.title = noteName; // Show full name on hover
-
-  //       li.appendChild(noteSpan);
-  //       li.onclick = () => insertNoteIntoActiveTab(note.noteText);
-  //       notesList.appendChild(li);
-  //     });
-  //   } else {
-  //     // Empty state
-  //     const emptyState = document.createElement("div");
-  //     emptyState.classList.add("empty-state");
-  //     emptyState.innerHTML = `
-  //       <p>No notes yet!</p>
-  //       <p>Open the full app to create your first note.</p>
-  //     `;
-  //     notesList.appendChild(emptyState);
-  //   }
-  // });
 });
 
 function insertNoteIntoActiveTab(note) {

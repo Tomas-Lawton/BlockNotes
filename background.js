@@ -2,7 +2,7 @@ import { getDate } from "./src/util.js";
 
 // first time initialisation
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.storage.sync.set({
+  chrome.storage.local.set({
     // default note on first install
     notes: {
       0: {
@@ -14,9 +14,9 @@ chrome.runtime.onInstalled.addListener(() => {
       },
     },
   });
-  chrome.storage.sync.set({ noteCounter: 1 });
-  chrome.storage.sync.set({ settings: { useSlashWithCtrl: false, key: '' } }); // Nested setting
-  chrome.storage.sync.set({ isInstalled: false });
+  chrome.storage.local.set({ noteCounter: 1 });
+  chrome.storage.local.set({ settings: { useSlashWithCtrl: false, key: '' } }); // Nested setting
+  chrome.storage.local.set({ isInstalled: false });
   console.log("Extension installed successfully.");
 });
 

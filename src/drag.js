@@ -279,7 +279,7 @@ export function updateDisplayIndexes() {
   const notesElements = document.querySelectorAll(".note");
   const totalNotes = notesElements.length;
 
-  chrome.storage.sync.get("notes", (data) => {
+  chrome.storage.local.get("notes", (data) => {
     const savedNotes = data.notes || {};
 
     notesElements.forEach((noteElem, i) => {
@@ -291,7 +291,7 @@ export function updateDisplayIndexes() {
       }
     });
 
-    chrome.storage.sync.set({ notes: savedNotes }, () => {
+    chrome.storage.local.set({ notes: savedNotes }, () => {
       // Notes saved
     });
   });

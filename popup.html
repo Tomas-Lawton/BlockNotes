@@ -73,6 +73,20 @@
         color: #111827;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+        border: 2px #e8e8e8 solid;
+        border-radius: 16px;
+        padding: 2p;
+      }
+
+      body > div:first-child {
+        border-radius: 12px;
+
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 24px;
+        background: #ffffff;
+        border-bottom: 1px solid #f3f4f6;
       }
 
       section {
@@ -83,15 +97,6 @@
         flex: 1;
         overflow: hidden;
         padding-bottom: 24px;
-      }
-
-      body > div:first-child {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 20px 24px;
-        background: #ffffff;
-        border-bottom: 1px solid #f3f4f6;
       }
 
       h1 {
@@ -139,6 +144,7 @@
         font-weight: 400;
         line-height: 1.5;
         margin: 0;
+        margin-top: 4px;
       }
 
       ul {
@@ -444,7 +450,7 @@
   </head>
   <body>
     <div>
-      <h1>BLOCKNOTES SETTINGS</h1>
+      <h1>Settings</h1>
       <div id="home">
         <img
           src="./public/uicons/uicons-round-medium-outline-home.svg"
@@ -460,9 +466,7 @@
         <div class="setting-card-header">
           <div>
             <h2>AI Naming</h2>
-            <p class="section-desc">
-              Automatically name your notes using Gemini AI
-            </p>
+            <p class="section-desc">Name your notes with Gemini</p>
           </div>
           <div class="button-group">
             <button id="info">Info</button>

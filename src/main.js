@@ -12,14 +12,14 @@ let noteCounter = null; // because of the default note.
 function deleteLocalNote(index) {
   // console.log("deleting, ", index);
 
-  chrome.storage.sync.get("notes", (data) => {
+  chrome.storage.local.get("notes", (data) => {
     const savedNotes = data.notes || {};
     console.log("Deleted note: ", index);
     delete savedNotes[index];
     checkNoteMessage(savedNotes);
     updateDragDropListeners();
 
-    chrome.storage.sync.set({ notes: savedNotes }, () => {
+    chrome.storage.local.set({ notes: savedNotes }, () => {
       // console.log("Notes saved:", savedNotes);
     });
 
@@ -37,38 +37,39 @@ function checkNoteMessage(savedNotes) {
 }
 
 function saveLocalNote(noteData) {
-  chrome.storage.sync.get("notes", (data) => {
+  chrome.storage.local.get("notes", (data) => {
     const savedNotes = data.notes || {};
     const key = noteCounter.toString();
+    noteData.noteName = `Note ${noteCounter+1}`; // Default name
     savedNotes[key] = noteData; // set key (index) to current count
     // console.log("Saving note key: ", key)
     // console.log("Saving note data: ", noteData)
-    chrome.storage.sync.set({ notes: savedNotes }, () => {
+    chrome.storage.local.set({ notes: savedNotes }, () => {
       // console.log("Notes saved:", savedNotes);
     });
     checkNoteMessage(savedNotes);
 
     noteCounter++; // increment the count
-    chrome.storage.sync.set({ noteCounter: noteCounter }, () => {
+    chrome.storage.local.set({ noteCounter: noteCounter }, () => {
       // console.log("Set counter:", noteCounter);
     });
   });
 }
 
 function loadNotes() {
-  chrome.storage.sync.get("isInstalled", (data) => {
+  chrome.storage.local.get("isInstalled", (data) => {
     let isInstalled = data.isInstalled;
 
     if (!isInstalled) {
-      chrome.storage.sync.set({ isInstalled: true }, () => {
+      chrome.storage.local.set({ isInstalled: true }, () => {
         console.log("You Installed Blocknotes. Cool!");
       });
     }
 
-    chrome.storage.sync.get("notes", (data) => {
+    chrome.storage.local.get("notes", (data) => {
       const savedNotes = data.notes || {};
       console.log("Loaded Saved Notes: ", savedNotes);
-      chrome.storage.sync.get(
+      chrome.storage.local.get(
         "noteCounter",
         (data) => (noteCounter = data.noteCounter)
       );
@@ -91,7 +92,7 @@ function loadNotes() {
 }
 
 function makeNote(noteText) {
-  chrome.storage.sync.get(["settings"], (data) => {
+  chrome.storage.local.get(["settings"], (data) => {
     const AIKEY = data.settings?.key;
     const date = getDate();
     const noteData = { noteText, date, noteIndex: noteCounter };
@@ -134,7 +135,7 @@ function makeNote(noteText) {
           const suggestedName =
             responseData.candidates[0].content.parts[0].text;
           // console.log(suggestedName)
-          const headingText = newNoteDOM.querySelector(".note-title")
+          const headingText = newNoteDOM.querySelector(".note-title");
           headingText.textContent = suggestedName;
           noteData.noteName = suggestedName;
           saveLocalNote(noteData); // Finally save it
@@ -324,7 +325,7 @@ function createNote({ noteText, date, noteIndex, displayIndex, noteName }) {
     noteTextDiv = newTextDiv;
 
     // Update local storage with the new note data
-    chrome.storage.sync.get("notes", (data) => {
+    chrome.storage.local.get("notes", (data) => {
       const savedNotes = data.notes || {};
       const newDate = getDate();
       dateElem.textContent = newDate;
@@ -336,7 +337,7 @@ function createNote({ noteText, date, noteIndex, displayIndex, noteName }) {
         noteName: originalTitle,
       };
 
-      chrome.storage.sync.set({ notes: savedNotes }, () => {
+      chrome.storage.local.set({ notes: savedNotes }, () => {
         // console.log("Notes saved:", savedNotes);
       });
     });
@@ -402,10 +403,10 @@ function createNote({ noteText, date, noteIndex, displayIndex, noteName }) {
   noteHeader.appendChild(acceptBtn);
   noteHeader.appendChild(discardBtn);
   noteHeader.appendChild(deleteBtn);
-  
+
   actionContainer.appendChild(copyBtn);
   actionContainer.appendChild(dateElem);
-  
+
   noteContent.appendChild(dragHandle);
   noteContent.appendChild(noteHeader);
   noteContent.appendChild(noteTextDiv);
@@ -414,7 +415,7 @@ function createNote({ noteText, date, noteIndex, displayIndex, noteName }) {
 
   notes.prepend(note); // Display in reverse order
 
-  return note
+  return note;
 }
 
 function loadShapePositions() {
