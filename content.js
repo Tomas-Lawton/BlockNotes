@@ -1,424 +1,730 @@
-let lastFocusedElement = null;
-let popupContainer = null;
-let selectedIndex = -1; // Track the selected index for arrow key navigation
-let ctrlPressed = false;
+/**
+ * BlockNotes Content Script - Final Version
+ * Minimal, beautiful, and robust with draggable header
+ */
 
-// Load Google Fonts
-const link = document.createElement("link");
-link.rel = "stylesheet";
-link.href =
-  "https://fonts.googleapis.com/css2?family=Archivo+Black&family=Exo+2:ital,wght@0,100..900;1,100..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lexend+Mega:wght@100..900&family=Reenie+Beanie&family=Sixtyfour+Convergence&display=swap";
-document.head.appendChild(link);
+// ============================================
+// STATE
+// ============================================
+const state = {
+  lastFocusedElement: null,
+  popupContainer: null,
+  selectedIndex: 0,
+  isPopupOpen: false,
+  lastSlashDetected: false,
+  previousValue: "",
+  notes: {},
+  isDragging: false,
+  dragStartX: 0,
+  dragStartY: 0,
+  popupStartX: 0,
+  popupStartY: 0,
+};
 
-// Track the last focused input element
-document.addEventListener(
-  "focus",
-  (event) => {
-    const target = event.target;
-
-    if (
-      target.isContentEditable ||
-      target.tagName === "TEXTAREA" ||
-      target.tagName === "INPUT"
-    ) {
-      lastFocusedElement = target;
-      // console.log("Set target:", lastFocusedElement);
-    } else {
-      // If the focused element is a container (e.g., a div), drill down to find a child text node
-      const textElement = findTextElement(target);
-      if (textElement) {
-        lastFocusedElement = textElement;
-        // console.log("Set target to text element:", lastFocusedElement);
-      }
-    }
-  },
-  true
-);
-
-// Recursive function to find the lowest-level child that contains text input
-function findTextElement(element) {
-  if (element.nodeType === Node.TEXT_NODE || element.isContentEditable) {
-    return element;
-  }
-
-  for (const child of element.children) {
-    const result = findTextElement(child);
-    if (result) return result;
-  }
-
-  return null;
+// ============================================
+// INIT
+// ============================================
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
 }
 
-// Paste value into the focused element
-function pasteValueToTarget(value) {
-  const target = lastFocusedElement;
-  if (!target) return;
+function init() {
+  // Load font
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href =
+    "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap";
+  document.head.appendChild(link);
 
-  let targetContent = target.value || target.textContent;
+  // Setup listeners
+  document.addEventListener("focus", handleFocus, true);
+  document.addEventListener("input", handleInput, true);
+  document.addEventListener("keydown", handleGlobalKeydown);
+  document.addEventListener("keyup", handleGlobalKeyup);
+  chrome.runtime.onMessage.addListener(handleMessage);
 
-  const slashIndex = targetContent.indexOf("/");
-  if (slashIndex !== -1) {
-    // Update the value or textContent depending on which is available
-    if (target.value !== undefined) {
-      target.value = targetContent.slice(0, slashIndex);
-    } else {
-      target.textContent = targetContent.slice(0, slashIndex);
-    }
-  }
-
-  // Append the new value to the target
-  if (target.value !== undefined) {
-    target.value += value;
-  } else {
-    target.textContent += value;
-  }
-
-  // Dispatch input event to notify changes
-  target.dispatchEvent(new Event("input", { bubbles: true }));
+  console.log("✓ BlockNotes loaded");
 }
 
-// chrome.storage.sync.get(["notes", "settings"], (data) => {
-//   const notes = data.notes || {};
-//   let ctrlPressed = false,
-//     slashPressed = false;
+// ============================================
+// FOCUS TRACKING
+// ============================================
+function handleFocus(event) {
+  if (isInput(event.target)) {
+    state.lastFocusedElement = event.target;
+    state.previousValue = getValue(event.target);
+  }
+}
 
-//   if (!data.settings.useSlashWithCtrl) {
-//     document.addEventListener("keyup", (event) => {
-//       if (event.key === "/") useExistingInputField(notes);
-//     });
-//   } else {
-//     document.addEventListener("keydown", (event) => {
-//       if (event.ctrlKey) ctrlPressed = true;
-//       if (ctrlPressed && event.key === "/") {
-//         slashPressed = true;
-//         insertSlashToInput(); // simple version
-//       }
-//     });
+function isInput(el) {
+  if (!el) return false;
+  return (
+    el.isContentEditable ||
+    el.tagName === "TEXTAREA" ||
+    (el.tagName === "INPUT" &&
+      ["text", "search", "email", "url", ""].includes(el.type || ""))
+  );
+}
 
-//     document.addEventListener("keyup", (event) => {
-//       if (event.key === "Control") ctrlPressed = false;
-//       if (event.key === "/" && slashPressed) {
-//         useExistingInputField(notes);
-//         slashPressed = false;
-//       }
-//     });
+// ============================================
+// INPUT DETECTION
+// ============================================
+function handleInput(event) {
+  if (!isInput(event.target)) return;
 
-//     function insertSlashToInput() {
-//       const inputField = document.activeElement;
-//       if (inputField) {
-//         if (inputField.tagName === "TEXTAREA" || inputField.tagName === "INPUT") {
-//           inputField.value += "/";
-//         } else if (inputField.isContentEditable) {
-//           inputField.textContent += "/";
-//         }
-//       }
-//     }
-//   }
-// });
+  const value = getValue(event.target);
+  const previousValue = state.previousValue;
 
-function useExistingInputField(notes) {
-  if (!lastFocusedElement) {
-    console.warn(
-      "No input, textarea, or contenteditable element is currently focused."
-    );
+  // Update previous value
+  state.previousValue = value;
+
+  // If popup is open, check if slash was deleted
+  if (state.isPopupOpen) {
+    if (!value.includes("/")) {
+      closePopup();
+    }
     return;
   }
 
-  selectedIndex = -1;
-  popupContainer = document.createElement("div");
+  // Detect if a NEW slash was just typed
+  const currentHasSlash = value.includes("/");
+  const justTypedSlash =
+    currentHasSlash &&
+    (!previousValue.includes("/") ||
+      value.lastIndexOf("/") !== previousValue.lastIndexOf("/"));
 
-  lastFocusedElement.addEventListener("input", showMatchingNotes);
-  window.addEventListener("keydown", handleKeydown);
+  if (justTypedSlash) {
+    state.lastSlashDetected = true;
+    state.lastFocusedElement = event.target;
 
-  // popupContainer.id = "notes-container";
-  popupContainer.classList.add("notes-container");
-  Object.assign(popupContainer.style, {
-    fontFamily: "'Lexend Mega', sans-serif",
-    fontWeight: "400",
-    position: "absolute",
-    zIndex: "9999",
-    listStyleType: "none",
-    top: `${
-      lastFocusedElement.getBoundingClientRect().bottom + window.scrollY + 2
-    }px`,
-    left: `${
-      lastFocusedElement.getBoundingClientRect().left + window.scrollX
-    }px`,
-    // width: `${lastFocusedElement.getBoundingClientRect().width}px`,
-    // maxWidth: "300px",
-    width: "250px",
-    // backgroundColor: "rgb(5 222 186)",
-    backgroundColor: "rgb(254, 254, 239)",
-    maxHeight: "400px",
-    // display: "none",
-    flexDirection: "column",
-    borderRadius: ".5rem",
-    padding: "6px",
-    border: "3px solid #05060f",
-    // boxShadow: "0.2rem 0.2rem #05060f",
-    overflow: "scroll",
-    color: "black",
-  });
+    setTimeout(() => {
+      chrome.storage.sync.get(["settings", "notes"], (data) => {
+        if (data.settings?.useSlashWithCtrl) return;
+        if (!data.notes || Object.keys(data.notes).length === 0) return;
 
-  const title = document.createElement("h2");
-  title.textContent = "Notes";
-  title.style.fontWeight = "700";
-  title.style.marginBottom = "0";
-  title.style.fontSize = "small";
-  popupContainer.appendChild(title);
-
-  const notesContainer = document.createElement("ul");
-  Object.assign(notesContainer.style, {
-    display: "flex",
-    flexDirection: "column",
-    gap: ".25rem",
-    listStyleType: "none",
-    padding: "4px",
-    background: "rgb(240 233 202)",
-    borderRadius: "6px",
-    margin: "4px 0",
-  });
-  popupContainer.appendChild(notesContainer);
-
-  document.body.appendChild(popupContainer);
-
-  function showMatchingNotes() {
-    let query = "";
-    if (lastFocusedElement) {
-      const text = lastFocusedElement.value || lastFocusedElement.textContent;
-      if (text) {
-        query = text.toLowerCase().substring(text.lastIndexOf("/") + 1);
-      } else {
-        console.error("lastFocusedElement has no value or textContent.");
-      }
-    } else {
-      console.error("lastFocusedElement is undefined or not valid");
-    }
-
-    const matchingNotes = Object.entries(notes)
-      .filter(([_, note]) => {
-        const queryStr = String(query).toLowerCase();
-        const noteNameQuery = note.noteName
-          ? String(note.noteName).toLowerCase()
-          : `Note ${note.noteIndex + 1}`.toLowerCase();
-
-        return noteNameQuery.includes(queryStr);
-      })
-      .map(([, note]) => note);
-
-    // console.log(matchingNotes);
-    notesContainer.innerHTML = ""; // Clear
-
-    // Show matching notes or a placeholder message if no results
-    let notesToShow = matchingNotes.length ? matchingNotes : [];
-    if (notesToShow.length === 0) {
-      notesContainer.innerHTML = "";
-      // console.log("none");
-      const noResults = document.createElement("li");
-      noResults.textContent = "No matching notes";
-      Object.assign(noResults.style, {
-        cursor: "pointer",
-        padding: "3px",
-        fontSize: "1rem",
-        borderRadius: "4px",
-        fontWeight: "400",
-        transition: ".3s ease",
-        padding: ".1rem .2rem",
+        state.notes = data.notes;
+        showPopup();
       });
-      notesContainer.appendChild(noResults);
-    } else {
-      notesToShow.forEach((note, index) => {
-        const li = document.createElement("li");
-        li.textContent = note.noteName || `Note ${note.noteIndex + 1}`;
-        Object.assign(li.style, {
-          cursor: "pointer",
-          padding: "3px",
-          fontSize: "1rem",
-          borderRadius: "4px",
-          fontWeight: "400",
-          transition: ".3s ease",
-          padding: ".1rem .2rem",
-        });
-        li.addEventListener("mouseenter", () => highlightNote(index));
-        li.addEventListener("mouseleave", () => removeHighlight(index));
-        li.addEventListener("click", () => {
-          pasteValueToTarget(note.noteText);
-          hidePopup();
-        });
-        notesContainer.appendChild(li);
-      });
-    }
-    selectedIndex = -1; // Reset selected index on every popup load
-
-    const popupHeight = popupContainer.offsetHeight;
-    const containerHeight =
-      window.innerHeight - popupContainer.getBoundingClientRect().top;
-
-    if (popupHeight > containerHeight) {
-      popupContainer.scrollIntoView({
-        behavior: "smooth",
-        block: "end",
-      });
-    }
+    }, 30);
+  } else if (!currentHasSlash) {
+    state.lastSlashDetected = false;
   }
-
-  function hidePopup() {
-    if (popupContainer) {
-      lastFocusedElement.removeEventListener("input", showMatchingNotes);
-      window.removeEventListener("keydown", handleKeydown);
-      popupContainer.remove();
-    }
-  }
-
-  function removeHighlight(index) {
-    const items = notesContainer.querySelectorAll("li");
-    items[index].style.backgroundColor = "";
-    items[index].style.transform = "";
-  }
-
-  function highlightNote(index) {
-    const items = notesContainer.querySelectorAll("li");
-    if (selectedIndex >= 0) {
-      items[selectedIndex].style.backgroundColor = ""; // Reset previous item style
-    }
-    selectedIndex = index;
-    items[selectedIndex].style.backgroundColor = "rgb(212 205 177)"; // Highlight selected item
-  }
-
-  function handleKeydown(event) {
-    const items = notesContainer.querySelectorAll("li");
-
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      if (selectedIndex < items.length - 1) {
-        highlightNote(selectedIndex + 1);
-      }
-    } else if (event.key === "ArrowUp") {
-      event.preventDefault();
-      if (selectedIndex > 0) {
-        highlightNote(selectedIndex - 1);
-      }
-    } else if (event.key === "Enter") {
-      event.preventDefault();
-
-      const currentValue = lastFocusedElement
-        ? lastFocusedElement.value || lastFocusedElement.textContent
-        : "";
-      let query = "";
-
-      if (currentValue) {
-        query = currentValue.slice(currentValue.indexOf("/") + 1).toLowerCase();
-      } else {
-        console.log("not found");
-      }
-
-      // console.log("query: ", query);
-      // const selectedNote =
-      //   Object.values(notes).find((note) => {
-      //     const noteIndex = `note${note.noteIndex + 1}`;
-      //     const noteName = note.noteName && note.noteName.toLowerCase();
-      //     console.log(noteIndex)
-      //     console.log(noteName)
-      //     return (
-      //       (noteName && noteName.includes(query.toLowerCase())) ||
-      //       noteIndex === query
-      //     );
-      //   }) ||
-      //   (selectedIndex >= 0
-      //     ? Object.values(notes)[selectedIndex]
-      //     : Object.values(notes)[0]);
-
-      // const selectedNote =
-      //   Object.values(notes).find((note) => {
-      //     const noteIndex = note.noteIndex + 1
-      //     const noteName = note.noteName?.toLowerCase();
-      //     console.log({ noteIndex, noteName }); // Log for debugging
-      //     const queryMatch = noteName?.includes(query.toLowerCase())
-      //     console.log(queryMatch)
-      //     return queryMatch || noteIndex.toString() === query;
-      //   })
-
-      //   console.log(selectedNote)
-
-      //   (notes[selectedIndex])
-
-      const selectedNote = 
-      selectedIndex !== undefined && notes[selectedIndex] 
-        ? notes[selectedIndex] 
-        : Object.values(notes).find((note) => {
-            const noteIndex = note.noteIndex + 1; // Adjusted index
-            const noteName = note.noteName?.toLowerCase();
-            const queryMatch = noteName?.includes(query.toLowerCase());
-            return queryMatch || noteIndex.toString() === query;
-          });
-    
-
-      if (selectedNote) {
-        lastFocusedElement.value = currentValue.slice(
-          0,
-          currentValue.indexOf("/")
-        );
-        pasteValueToTarget(selectedNote.noteText);
-        hidePopup();
-      }
-    } else if (
-      event.key === "Escape" ||
-      (event.key === "Backspace" &&
-        (lastFocusedElement.value || lastFocusedElement.textContent).endsWith(
-          "/"
-        ))
-    ) {
-      hidePopup();
-    }
-  }
-
-  showMatchingNotes();
 }
 
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Control") {
+function getValue(el) {
+  // Special handling for Google search
+  if (
+    el.getAttribute("aria-label")?.includes("Search") ||
+    el.getAttribute("role") === "combobox"
+  ) {
+    return el.value || el.textContent || el.innerText || "";
+  }
+  return el.value || el.textContent || "";
+}
+
+// ============================================
+// KEYBOARD
+// ============================================
+let ctrlPressed = false;
+
+function handleGlobalKeydown(event) {
+  if (event.key === "Control" || event.key === "Meta") {
     ctrlPressed = true;
   }
 
-  if (event.key === "/" || ctrlPressed) {
+  // Ctrl+/ trigger
+  if (ctrlPressed && event.key === "/" && !state.isPopupOpen) {
+    if (!isInput(document.activeElement)) return;
+
     chrome.storage.sync.get(["settings", "notes"], (data) => {
-      const useSlashWithCtrl = data.settings?.useSlashWithCtrl || false;
-      const notes = data.notes || {};
+      if (!data.settings?.useSlashWithCtrl) return;
+      if (!data.notes || Object.keys(data.notes).length === 0) return;
 
-      if (useSlashWithCtrl) {
-        if (ctrlPressed && event.key === "/") {
-          insertSlashToInput();
-          useExistingInputField(notes);
-        }
-      } else if (event.key === "/") {
-        useExistingInputField(notes);
-      }
+      event.preventDefault();
+      state.lastFocusedElement = document.activeElement;
+      state.notes = data.notes;
+      insertSlash();
+      setTimeout(showPopup, 20);
     });
-  }
-});
-
-document.addEventListener("keyup", (event) => {
-  if (event.key === "Control") {
-    ctrlPressed = false;
-  }
-});
-
-function insertSlashToInput() {
-  const inputField = document.activeElement;
-  if (inputField) {
-    if (inputField.tagName === "TEXTAREA" || inputField.tagName === "INPUT") {
-      inputField.value += "/";
-    } else if (inputField.isContentEditable) {
-      inputField.textContent += "/";
-    }
   }
 }
 
-// Always listen for paste from popup
-chrome.runtime.onMessage.addListener((request) => {
-  if (request.action === "pasteValue") {
-    pasteValueToTarget(request.value);
+function handleGlobalKeyup(event) {
+  if (event.key === "Control" || event.key === "Meta") {
+    ctrlPressed = false;
   }
-});
+}
 
-console.log("Loaded Blocknotes Extension Script.");
+function insertSlash() {
+  const el = state.lastFocusedElement;
+  if (!el) return;
+
+  if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
+    const start = el.selectionStart || 0;
+    const text = el.value || "";
+    el.value = text.substring(0, start) + "/" + text.substring(start);
+    el.selectionStart = el.selectionEnd = start + 1;
+    state.previousValue = el.value;
+  } else if (el.isContentEditable) {
+    document.execCommand("insertText", false, "/");
+    state.previousValue = getValue(el);
+  }
+
+  el.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+// ============================================
+// DRAG FUNCTIONALITY
+// ============================================
+function handleDragStart(event, header) {
+  if (event.target.tagName === "BUTTON") return; // Don't drag when clicking close button
+
+  state.isDragging = true;
+  state.dragStartX = event.clientX;
+  state.dragStartY = event.clientY;
+
+  // Get current popup position
+  const popup = state.popupContainer;
+  const rect = popup.getBoundingClientRect();
+  state.popupStartX = rect.left;
+  state.popupStartY = rect.top;
+
+  // Add dragging cursor
+  header.style.cursor = "grabbing";
+  popup.style.transition = "none";
+
+  // Attach move and up listeners
+  document.addEventListener("mousemove", handleDragMove);
+  document.addEventListener("mouseup", handleDragEnd);
+
+  event.preventDefault();
+}
+
+function handleDragMove(event) {
+  if (!state.isDragging) return;
+
+  const deltaX = event.clientX - state.dragStartX;
+  const deltaY = event.clientY - state.dragStartY;
+
+  const newX = state.popupStartX + deltaX;
+  const newY = state.popupStartY + deltaY;
+
+  // Update popup position
+  const popup = state.popupContainer;
+  popup.style.left = `${newX}px`;
+  popup.style.top = `${newY}px`;
+  popup.style.right = "auto";
+  popup.style.bottom = "auto";
+}
+
+function handleDragEnd(event) {
+  if (!state.isDragging) return;
+
+  state.isDragging = false;
+
+  // Restore cursor
+  const header = state.popupContainer?.querySelector(".blocknotes-header");
+  if (header) {
+    header.style.cursor = "grab";
+  }
+
+  // Remove listeners
+  document.removeEventListener("mousemove", handleDragMove);
+  document.removeEventListener("mouseup", handleDragEnd);
+}
+
+// ============================================
+// POPUP
+// ============================================
+function showPopup() {
+  if (state.isPopupOpen || !state.lastFocusedElement) return;
+
+  state.isPopupOpen = true;
+  state.selectedIndex = 0;
+
+  // Create popup
+  const popup = document.createElement("div");
+  popup.className = "blocknotes-popup";
+  popup.style.cssText = getPopupStyles();
+
+  // Create list
+  const list = document.createElement("ul");
+  list.className = "blocknotes-list";
+  list.style.cssText = getListStyles();
+
+  // Add minimalist title with close button
+  const header = document.createElement("div");
+  header.className = "blocknotes-header";
+  header.style.cssText = `
+    padding: 8px 12px;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 11px;
+    font-weight: 600;
+    color: #111827;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: grab;
+    user-select: none;
+  `;
+
+  const title = document.createElement("span");
+  title.textContent = "BlockNotes";
+
+  const closeBtn = document.createElement("button");
+  closeBtn.innerHTML = "×";
+  closeBtn.style.cssText = `
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    font-weight: 700;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+    line-height: 1;
+  `;
+
+  closeBtn.addEventListener("mouseenter", () => {
+    closeBtn.style.background = "#f3f4f6";
+    closeBtn.style.color = "#111827";
+  });
+
+  closeBtn.addEventListener("mouseleave", () => {
+    closeBtn.style.background = "transparent";
+    closeBtn.style.color = "#6b7280";
+  });
+
+  closeBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    closePopup();
+  });
+
+  // Add drag functionality to header
+  header.addEventListener("mousedown", (e) => handleDragStart(e, header));
+
+  header.appendChild(title);
+  header.appendChild(closeBtn);
+
+  popup.appendChild(header);
+  popup.appendChild(list);
+  document.body.appendChild(popup);
+
+  state.popupContainer = popup;
+
+  // Setup listeners
+  state.lastFocusedElement.addEventListener("input", updateResults);
+  document.addEventListener("click", handleClickOutside);
+  document.addEventListener("keydown", handlePopupKeydown, true);
+
+  // Initial render
+  updateResults();
+
+  // Add styles
+  addStyles();
+}
+
+function getPopupStyles() {
+  const rect = state.lastFocusedElement.getBoundingClientRect();
+  const viewportHeight = window.innerHeight;
+  const maxHeight = 320;
+  const width = Math.min(380, window.innerWidth - 40);
+
+  // Get cursor position within the input
+  let cursorX = rect.left;
+  let cursorY = rect.top;
+
+  // Try to get more precise cursor position
+  if (
+    state.lastFocusedElement.tagName === "INPUT" ||
+    state.lastFocusedElement.tagName === "TEXTAREA"
+  ) {
+    const el = state.lastFocusedElement;
+
+    // Create a temporary span to measure cursor position
+    const span = document.createElement("span");
+    span.style.cssText = `
+      position: absolute;
+      visibility: hidden;
+      white-space: pre;
+      font: ${window.getComputedStyle(el).font};
+      padding: ${window.getComputedStyle(el).padding};
+    `;
+
+    const value = el.value || "";
+    const cursorPos = el.selectionStart || 0;
+    span.textContent = value.substring(0, cursorPos);
+    document.body.appendChild(span);
+
+    const spanWidth = span.getBoundingClientRect().width;
+    document.body.removeChild(span);
+
+    cursorX = rect.left + spanWidth;
+  }
+
+  // Default position below
+  let top = rect.bottom + 6;
+  let left = cursorX;
+
+  // Check if popup would go below viewport
+  if (top + maxHeight > viewportHeight - 20) {
+    // Position above instead
+    top = rect.top - maxHeight - 6;
+
+    // If still doesn't fit, position at top of viewport
+    if (top < 20) {
+      top = 20;
+    }
+  }
+
+  // Keep popup in horizontal bounds
+  if (left + width > window.innerWidth - 20) {
+    left = window.innerWidth - width - 20;
+  }
+  if (left < 20) {
+    left = 20;
+  }
+
+  return `
+    position: fixed;
+    top: ${top}px;
+    left: ${left}px;
+    width: ${width}px;
+    max-height: ${maxHeight}px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+    z-index: 2147483647;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    overflow: hidden;
+    transition: opacity 0.15s ease;
+  `;
+}
+
+function getListStyles() {
+  return `
+    margin: 0;
+    padding: 4px;
+    list-style: none;
+    max-height: 260px;
+    overflow-y: auto;
+  `;
+}
+
+// ============================================
+// UPDATE & RENDER
+// ============================================
+function updateResults() {
+  if (!state.popupContainer) return;
+
+  const list = state.popupContainer.querySelector(".blocknotes-list");
+  if (!list) return;
+
+  const query = extractQuery();
+  const matches = filterNotes(query);
+
+  renderResults(list, matches);
+}
+
+function extractQuery() {
+  const value = getValue(state.lastFocusedElement);
+  const lastSlash = value.lastIndexOf("/");
+
+  // Return everything after the last slash, keep spaces and numbers
+  if (lastSlash >= 0) {
+    return value.substring(lastSlash + 1).trim();
+  }
+  return "";
+}
+
+function filterNotes(query) {
+  // Normalize query for better matching
+  const normalizedQuery = query.toLowerCase();
+
+  return Object.values(state.notes)
+    .filter((note) => {
+      if (!normalizedQuery) return true;
+
+      const name = (note.noteName || "").toLowerCase();
+      const text = (note.noteText || "").toLowerCase();
+
+      // Match if query appears anywhere in name or text
+      return name.includes(normalizedQuery) || text.includes(normalizedQuery);
+    })
+    .sort((a, b) => {
+      if (!normalizedQuery)
+        return (b.displayIndex || 0) - (a.displayIndex || 0);
+
+      const aName = (a.noteName || "").toLowerCase();
+      const bName = (b.noteName || "").toLowerCase();
+      const aText = (a.noteText || "").toLowerCase();
+      const bText = (b.noteText || "").toLowerCase();
+
+      // Prioritize exact name matches
+      const aNameMatch = aName.includes(normalizedQuery);
+      const bNameMatch = bName.includes(normalizedQuery);
+
+      if (aNameMatch && !bNameMatch) return -1;
+      if (!aNameMatch && bNameMatch) return 1;
+
+      // Then prioritize name matches that start with query
+      const aNameStarts = aName.startsWith(normalizedQuery);
+      const bNameStarts = bName.startsWith(normalizedQuery);
+
+      if (aNameStarts && !bNameStarts) return -1;
+      if (!aNameStarts && bNameStarts) return 1;
+
+      // Finally by display index
+      return (b.displayIndex || 0) - (a.displayIndex || 0);
+    });
+}
+
+function renderResults(list, matches) {
+  list.innerHTML = "";
+
+  if (matches.length === 0) {
+    const empty = document.createElement("li");
+    empty.textContent = "No notes found";
+    empty.style.cssText = `
+      padding: 16px;
+      text-align: center;
+      color: #9ca3af;
+      font-size: 14px;
+    `;
+    list.appendChild(empty);
+    return;
+  }
+
+  matches.forEach((note, i) => {
+    const li = document.createElement("li");
+    li.className = "blocknotes-item";
+
+    const name = note.noteName || `Note ${note.noteIndex + 1}`;
+    const preview =
+      note.noteText.length > 50
+        ? note.noteText.substring(0, 50) + "..."
+        : note.noteText;
+
+    li.innerHTML = `
+      <div style="font-weight: 600; font-size: 14px; color: #111827; margin-bottom: 4px;">${escapeHtml(
+        name
+      )}</div>
+      <div style="font-size: 13px; color: #6b7280; line-height: 1.4;">${escapeHtml(
+        preview
+      )}</div>
+    `;
+
+    li.style.cssText = getItemStyles(i === state.selectedIndex);
+
+    li.addEventListener("mouseenter", () => selectItem(i));
+    li.addEventListener("click", () => {
+      pasteNote(note.noteText);
+      closePopup();
+    });
+
+    list.appendChild(li);
+  });
+
+  // Ensure selected is visible
+  const selected = list.children[state.selectedIndex];
+  if (selected) {
+    selected.scrollIntoView({ block: "nearest" });
+  }
+}
+
+function getItemStyles(isSelected) {
+  return `
+    padding: 10px 12px;
+    margin: 2px 0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    background: ${isSelected ? "#f3f4f6" : "white"};
+    border-left: ${isSelected ? "3px solid #3b82f6" : "3px solid transparent"};
+  `;
+}
+
+function selectItem(index) {
+  state.selectedIndex = index;
+  const list = state.popupContainer?.querySelector(".blocknotes-list");
+  if (!list) return;
+
+  Array.from(list.children).forEach((item, i) => {
+    item.style.cssText = getItemStyles(i === index);
+  });
+}
+
+function handlePopupKeydown(event) {
+  if (!state.popupContainer) return;
+
+  const list = state.popupContainer.querySelector(".blocknotes-list");
+  const items = list?.children || [];
+  const max = items.length - 1;
+
+  switch (event.key) {
+    case "ArrowDown":
+      event.preventDefault();
+      event.stopPropagation();
+      selectItem(state.selectedIndex < max ? state.selectedIndex + 1 : 0);
+      break;
+
+    case "ArrowUp":
+      event.preventDefault();
+      event.stopPropagation();
+      selectItem(state.selectedIndex > 0 ? state.selectedIndex - 1 : max);
+      break;
+
+    case "Enter":
+      event.preventDefault();
+      event.stopPropagation();
+      const matches = filterNotes(extractQuery());
+      if (matches[state.selectedIndex]) {
+        pasteNote(matches[state.selectedIndex].noteText);
+        closePopup();
+      }
+      break;
+
+    case "Escape":
+      event.preventDefault();
+      event.stopPropagation();
+      closePopup();
+      break;
+  }
+}
+
+function handleClickOutside(event) {
+  if (!state.popupContainer) return;
+  if (state.popupContainer.contains(event.target)) return;
+  if (state.lastFocusedElement === event.target) return;
+  closePopup();
+}
+
+function closePopup() {
+  if (!state.popupContainer) return;
+
+  state.lastFocusedElement?.removeEventListener("input", updateResults);
+  document.removeEventListener("click", handleClickOutside);
+  document.removeEventListener("keydown", handlePopupKeydown, true);
+  document.removeEventListener("mousemove", handleDragMove);
+  document.removeEventListener("mouseup", handleDragEnd);
+
+  state.popupContainer.remove();
+  state.popupContainer = null;
+  state.isPopupOpen = false;
+  state.lastSlashDetected = false;
+  state.selectedIndex = 0;
+  state.isDragging = false;
+}
+
+// ============================================
+// PASTE
+// ============================================
+function pasteNote(text) {
+  const el = state.lastFocusedElement;
+  if (!el) return;
+
+  let content = getValue(el);
+  const slashIndex = content.lastIndexOf("/");
+
+  if (slashIndex >= 0) {
+    content = content.slice(0, slashIndex) + text;
+  } else {
+    content += text;
+  }
+
+  // Set value
+  if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
+    el.value = content;
+
+    // React compatibility
+    const nativeSetter = Object.getOwnPropertyDescriptor(
+      el.tagName === "INPUT"
+        ? HTMLInputElement.prototype
+        : HTMLTextAreaElement.prototype,
+      "value"
+    )?.set;
+    if (nativeSetter) {
+      nativeSetter.call(el, content);
+    }
+
+    // Move cursor to end
+    el.setSelectionRange(content.length, content.length);
+  } else if (el.isContentEditable) {
+    el.textContent = content;
+
+    // Move cursor to end
+    const range = document.createRange();
+    const sel = window.getSelection();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
+  // Update previous value
+  state.previousValue = content;
+
+  // Trigger events
+  el.dispatchEvent(new Event("input", { bubbles: true }));
+  el.dispatchEvent(new Event("change", { bubbles: true }));
+  el.focus();
+}
+
+function handleMessage(request) {
+  if (request.action === "pasteValue") {
+    pasteNote(request.value);
+  }
+}
+
+// ============================================
+// STYLES
+// ============================================
+function addStyles() {
+  if (document.getElementById("blocknotes-styles")) return;
+
+  const style = document.createElement("style");
+  style.id = "blocknotes-styles";
+  style.textContent = `
+    .blocknotes-list::-webkit-scrollbar {
+      width: 8px;
+    }
+    .blocknotes-list::-webkit-scrollbar-track {
+      background: #f9fafb;
+      border-radius: 4px;
+    }
+    .blocknotes-list::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 4px;
+    }
+    .blocknotes-list::-webkit-scrollbar-thumb:hover {
+      background: #9ca3af;
+    }
+    .blocknotes-item:hover {
+      background: #f9fafb !important;
+    }
+    .blocknotes-header:active {
+      cursor: grabbing !important;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+// ============================================
+// UTILS
+// ============================================
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}

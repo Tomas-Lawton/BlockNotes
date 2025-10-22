@@ -5,171 +5,139 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>BlockNotes</title>
     <style>
-      @import url("https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,100..900;1,100..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lexend+Mega:wght@100..900&family=Sixtyfour+Convergence&display=swap");
-      @import url("https://fonts.googleapis.com/css2?family=Archivo+Black&family=Exo+2:ital,wght@0,100..900;1,100..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lexend+Mega:wght@100..900&family=Reenie+Beanie&family=Sixtyfour+Convergence&display=swap");
-
-      /* .note-icon {
-        width: 20px;
-        height: 20px;
-        margin-right: 8px;
-      } */
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 
       ::selection {
-        background: rgb(249, 222, 75);
+        background: #e0e7ff;
+        color: #312e81;
+      }
 
-        /* background: rgb(46, 4, 245); */
+      * {
+        box-sizing: border-box;
       }
 
       .random-image {
-        width: 50px;
-        height: 50px;
+        width: 40px;
+        height: 40px;
         position: absolute;
         z-index: -400;
-        opacity: 0.5;
+        opacity: 0.15;
       }
 
       input::placeholder {
-        font-family: "Lexend Mega", sans-serif;
-
-        color: #333333;
-        opacity: 0.5;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+        color: #9ca3af;
+        opacity: 1;
       }
 
       .note-icon-wrapper {
-        /* display: inline-block; */
         display: flex;
-        padding: 8px 16px;
-        /* background: white; */
-        /* background: #ffce00; */
+        padding: 6px;
         cursor: pointer;
-        box-shadow: 0.1rem 0.1rem #05060f;
-        transition: 0.3s ease;
-        border-radius: 2rem;
-        border: 4px solid #05060f;
-        padding: 8px;
-        /* margin-left: 8px; */
-        /* gap: 1rem; */
-        background: #ffe45d;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+        background: #ffffff;
+        flex-shrink: 0;
+      }
+
+      .note-icon-wrapper:hover {
+        transform: translateY(-1px);
+        background: #f9fafb;
+        border-color: #d1d5db;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
       }
 
       .note-icon {
-        width: 20px;
-        height: 20px;
-      }
-
-      #info {
-        background: #b7f9ff;
+        width: 18px;
+        height: 18px;
       }
 
       a {
-        color: black;
+        color: #4f46e5;
         text-decoration: none;
       }
 
       body {
-        border-radius: 1rem;
-        /* border: 4px solid #05060f; */
-        background-color: rgb(254, 254, 239);
+        background: linear-gradient(to bottom, #f9fafb, #ffffff);
         margin: 0;
-        font-family: "Lexend Mega", sans-serif;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
         font-style: normal;
-        font-size: 1rem;
+        font-size: 14px;
         overflow: hidden;
-        /* padding: 2rem; */
-        /* height: 100%; */
         display: flex;
         flex-direction: column;
-        /* height: 785px; */
-        /* height: 714px; */
-        /* height: 763px; */
         height: 777px;
-        /* gap: 1rem; */
-        gap: 2rem;
-        overflow: hidden;
-        border: 4px solid #05060f;
+        gap: 0;
+        color: #111827;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
       }
 
       section {
-        /* gap: 1.5rem; */
-        gap: 1rem;
+        gap: 16px;
         display: flex;
         flex-direction: column;
-        margin: 0 1.5em;
-      }
-
-      footer {
-        text-align: center;
-        margin: 0 1.6rem;
-        margin-top: auto;
-        margin-bottom: 1.5rem;
-      }
-
-      footer p {
-        background-color: #ffce00;
-        width: fit-content;
-        margin: 0;
-        border-radius: 5px;
-        /* padding: 5px; */
-        padding: 1rem;
-        line-height: 1.6;
-        /* font-size: 0.5rem; */
-        font-size: 0.45rem;
-        font-weight: 700;
+        margin: 0 24px;
+        flex: 1;
+        overflow: hidden;
+        padding-bottom: 24px;
       }
 
       body > div:first-child {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        /* margin-bottom: 1rem; */
-        padding: 1rem;
-        /* background: aqua; */
-        /* background: #cbffdb; */
-        border-radius: 0.7rem 0.7rem 0 0;
-        padding: 1rem 1rem 0.7rem 1rem;
-
-        background: #ffce00;
-        border-bottom: 4px solid #05060f;
-      }
-
-      /* body > div {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      } */
-
-      hr {
-        border: 2px solid #05060f;
-        width: 100%;
-        margin: 1rem 0;
+        padding: 20px 24px;
+        background: #ffffff;
+        border-bottom: 1px solid #f3f4f6;
       }
 
       h1 {
-        /* font-family: "Reenie Beanie", cursive; */
-        font-size: 1.4rem;
+        font-size: 18px;
         display: inline-block;
         overflow: hidden;
         white-space: nowrap;
         margin: 0;
-        font-weight: bold;
+        font-weight: 600;
+        letter-spacing: -0.3px;
+        color: #111827;
+        /* color: #9ca3af; */
       }
 
       #note-container {
-        /* background: rgb(201 206 255 / 98%); */
-        background: rgb(255 255 255);
-        /* margin: 0 1rem; */
-        border: 4px solid #05060f;
-        /* box-shadow: 0.4rem 0.4rem #05060f; */
-        padding: 1rem;
+        background: #ffffff;
+        padding: 20px;
         display: flex;
         flex-direction: column;
-        overflow: auto;
-        gap: 1rem;
+        overflow: hidden;
+        gap: 12px;
+        border-radius: 12px;
+        flex: 1;
+        border: 1px solid #f3f4f6;
+      }
 
-        border-radius: 1rem;
+      #note-container .section-header {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-bottom: 4px;
       }
 
       #note-container h2 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: #111827;
+        letter-spacing: -0.2px;
+      }
+
+      .section-desc {
+        font-size: 13px;
+        color: #6b7280;
+        font-weight: 400;
+        line-height: 1.5;
         margin: 0;
       }
 
@@ -178,220 +146,209 @@
         padding: 0;
         display: flex;
         flex-direction: column;
-        /* flex: 1; */
-        overflow: visible;
-        border-radius: 1rem;
-        gap: 0.5rem;
+        overflow-y: auto;
+        overflow-x: hidden;
+        border-radius: 8px;
+        gap: 8px;
         margin: 0;
+        flex: 1;
+      }
+
+      ul::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      ul::-webkit-scrollbar-track {
+        background: transparent;
+        border-radius: 10px;
+      }
+
+      ul::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 10px;
+      }
+
+      ul::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af;
       }
 
       li {
         display: flex;
-        /* justify-content: flex-start; */
         align-items: center;
         cursor: pointer;
-        border-radius: 0.5rem;
-        /* background: rgb(201 206 255 / 98%); */
-        border: 4px solid #05060f;
-        font-size: 1rem;
-        padding: 0.5rem;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 10px;
+        border: 1px solid #e5e7eb;
+        font-size: 14px;
+        padding: 12px 14px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         will-change: transform;
-        background: #87b7de;
-        gap: 0.5rem;
+        background: #ffffff;
+        gap: 12px;
+        font-weight: 400;
       }
 
       li:hover {
-        transform: scale(1.01);
-        box-shadow: 0.2rem 0.2rem #05060f;
-        color: black;
+        transform: translateY(-1px);
+        background: #f9fafb;
+        border-color: #d1d5db;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
       }
+
+      li:active {
+        transform: translateY(0);
+        box-shadow: none;
+      }
+
       h2 {
-        font-size: 1rem;
-        align-items: center;
-        font-weight: 400;
-        width: 100%;
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: -0.2px;
       }
+
       button {
-        font-family: "Lexend Mega", sans-serif;
-        text-transform: uppercase;
-        letter-spacing: -1.5px;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
         font-weight: 500;
+        font-size: 13px;
+        letter-spacing: -0.1px;
       }
-      #setting-slash {
+
+      .setting-card {
         display: flex;
-        gap: 1rem;
-        justify-content: space-between;
+        flex-direction: column;
+        gap: 12px;
+        padding: 20px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        background: #ffffff;
+        border-radius: 12px;
+        border: 1px solid #f3f4f6;
+      }
+
+      .setting-card-header {
         display: flex;
         justify-content: space-between;
-        cursor: pointer;
-        border: 4px solid #05060f;
-        font-size: 1rem;
-        padding: 10px 1rem;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        will-change: transform;
-        background: #cbffdb;
         align-items: center;
-        border: 4px solid #05060f;
-        /* box-shadow: 0.4rem 0.4rem #05060f; */
-        border-radius: 1rem;
+        gap: 16px;
+      }
+
+      .setting-card-header h2 {
+        margin: 0;
+        flex: 1;
+      }
+
+      .setting-card:hover {
+        border-color: #e5e7eb;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
       }
 
       #auto-name-setting {
-        display: flex;
-        /* gap: 1rem; */
-        gap: 0.2rem;
-        justify-content: space-between;
-        display: flex;
-        justify-content: space-between;
-        cursor: pointer;
-        border: 4px solid #05060f;
-        font-size: 1rem;
-        padding: 10px 1rem;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        will-change: transform;
-        /* background: #cbffdb; */
-        /* background: #fed703; */
-        background-color: #35eeff;
-        align-items: center;
-        border: 4px solid #05060f;
-        /* box-shadow: 0.4rem 0.4rem #05060f; */
-        border-radius: 1rem;
+        margin-top: 20px;
       }
 
       .oai-key-container {
-        /* gap: 1rem; */
-        gap: 0.2rem;
-        justify-content: space-between;
+        gap: 12px;
         display: flex;
-        justify-content: space-between;
-        cursor: pointer;
-        border: 4px solid #05060f;
-        font-size: 1rem;
-        padding: 0 1rem;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        will-change: transform;
-        background: #ccfedb;
-        align-items: center;
-        border: 4px solid #05060f;
-        /* box-shadow: 0.4rem 0.4rem #05060f; */
-        padding: 1rem;
-        border-radius: 1rem;
+        flex-direction: column;
+        padding: 16px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: #f0fdf4;
+        border-radius: 10px;
+        animation: slideDown 0.3s ease;
+        margin: 0;
+        border: 1px solid #dcfce7;
+      }
+
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       .oai-key-container input {
         width: 100%;
-        padding: 8px 8px;
-        width: 100%;
-        border: 4px solid black;
-        border-radius: 2rem;
-        transition: 0.3s ease;
-        background: white;
+        padding: 10px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        background: #ffffff;
         outline: none;
-        margin: 0;
-        border-radius: 0.5rem;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 13px;
+      }
+
+      .oai-key-container input:focus {
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+      }
+
+      .oai-key-container button {
+        align-self: flex-end;
+        width: auto;
       }
 
       button {
         display: flex;
-        /* border: none; */
-        padding: 4px 8px;
+        padding: 8px 16px;
         cursor: pointer;
-        /* background: #0ecdad; */
-        /* border: 2px solid black; */
-        /* box-shadow: 0.1rem 0.1rem #05060f; */
-        transition: 0.3s ease;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         align-items: center;
-        gap: 8px;
-        font-size: 0.7rem;
-        border-radius: 2rem;
-        border: 2px solid #05060f;
-        background: #fed703;
-        height: 30px;
+        justify-content: center;
+        gap: 6px;
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+        background: #ffffff;
+        height: 36px;
+        color: #374151;
+        white-space: nowrap;
       }
 
-      /* Duplicate */
+      button:hover {
+        background: #f9fafb;
+        border-color: #d1d5db;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      }
+
+      button:active {
+        transform: scale(0.98);
+        box-shadow: none;
+      }
 
       #home {
         display: flex;
-        padding: 8px 16px;
-        /* background: #48dc00; */
-        cursor: pointer;
-        box-shadow: 0.1rem 0.1rem #05060f;
-        transition: 0.3s ease;
-        border-radius: 2rem;
-        border: 4px solid #05060f;
         padding: 8px;
-        margin-left: 8px;
-        /* background: #ffd500; */
-        background: #ffe45d;
-        /* linear-gradient(90deg, #1bedca, #00bf9f); */
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+        background: #ffffff;
       }
 
       #home:hover {
-        background-color: #ffd500;
-
-        /* background: linear-gradient(90deg, #1bedca, #00bf9f); */
-        box-shadow: 0.2rem 0.2rem #05060f;
-        cursor: pointer;
-        transform: scale(1.05);
+        background: #f9fafb;
+        border-color: #d1d5db;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
       }
 
-      /* NOTES CONTAINER */
-
-      /* Style for the notes container */
-      .notes-container {
-        position: absolute;
-        z-index: 9999;
-        list-style-type: none;
-        padding: 0;
-        margin: 0;
-        top: calc(
-          var(--input-bottom) + var(--scroll-y)
-        ); /* Variables for dynamic positioning */
-        left: calc(
-          var(--input-left) + var(--scroll-x)
-        ); /* Variables for dynamic positioning */
-        width: var(--input-width); /* Match input width */
-        background-color: white;
-        border: 1px solid #ccc;
-        max-height: 200px;
-        overflow-y: auto;
-        display: none; /* Initially hidden */
+      #home:active {
+        transform: scale(0.95);
       }
-
-      /* Add a class for showing the container */
-      .notes-container.visible {
-        display: block; /* Show when visible */
-      }
-
-      /* Style for each note item */
-      .notes-container li {
-        cursor: pointer;
-        padding: 4px;
-        border-bottom: 1px solid #ccc;
-      }
-
-      /* Style for each note item on hover */
-      .notes-container li:hover {
-        background-color: #f0f0f0; /* Change background on hover */
-      }
-
-      /* SWITCH */
 
       .checkbox-wrapper-5 {
-        /* margin: auto 0; */
-        margin-top: 3px;
+        margin-top: 0;
       }
 
-      /* From Uiverse.io by Shoh2008 */
       .checkbox-wrapper-5 .check {
-        --size: 30px;
+        --size: 32px;
         position: relative;
-        background: linear-gradient(90deg, #1bedca, #00bf9f);
+        background: transparent;
         line-height: 0;
         perspective: 400px;
         font-size: var(--size);
+        border-radius: calc(var(--size) / 2);
       }
 
       .checkbox-wrapper-5 .check input[type="checkbox"],
@@ -401,143 +358,147 @@
       .checkbox-wrapper-5 .check {
         appearance: none;
         display: inline-block;
-        border-radius: var(--size);
+        border-radius: calc(var(--size) / 2);
         border: 0;
-        transition: 0.35s ease-in-out;
+        transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         box-sizing: border-box;
         cursor: pointer;
       }
 
       .checkbox-wrapper-5 .check label {
-        width: calc(2.2 * var(--size));
+        width: calc(2 * var(--size));
         height: var(--size);
-        background: #d7d7d7;
+        background: #e5e7eb;
         overflow: hidden;
+        position: relative;
       }
 
       .checkbox-wrapper-5 .check input[type="checkbox"] {
         position: absolute;
         z-index: 1;
-        width: calc(0.8 * var(--size));
-        height: calc(0.8 * var(--size));
-        top: calc(0.1 * var(--size));
-        left: calc(0.1 * var(--size));
-        background: linear-gradient(45deg, #dedede, #ffffff);
-        box-shadow: 0 6px 7px rgba(0, 0, 0, 0.3);
+        width: calc(0.7 * var(--size));
+        height: calc(0.7 * var(--size));
+        top: calc(0.15 * var(--size));
+        left: calc(0.15 * var(--size));
+        background: #ffffff;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         outline: none;
         margin: 0;
       }
 
       .checkbox-wrapper-5 .check input[type="checkbox"]:checked {
-        left: calc(1.3 * var(--size));
+        left: calc(1.15 * var(--size));
       }
 
       .checkbox-wrapper-5 .check input[type="checkbox"]:checked + label {
-        background: transparent;
+        background: #4f46e5;
       }
 
       .checkbox-wrapper-5 .check label::before,
       .checkbox-wrapper-5 .check label::after {
-        content: "· ·";
+        content: "";
         position: absolute;
-        overflow: hidden;
-        left: calc(0.15 * var(--size));
-        top: calc(0.5 * var(--size));
-        height: var(--size);
-        letter-spacing: calc(-0.04 * var(--size));
-        color: #9b9b9b;
-        font-family: "Times New Roman", serif;
-        z-index: 2;
-        font-size: calc(0.6 * var(--size));
-        border-radius: 0;
-        transform-origin: 0 0 calc(-0.5 * var(--size));
-        backface-visibility: hidden;
+        display: none;
       }
 
-      .checkbox-wrapper-5 .check label::after {
-        content: "●";
-        top: calc(0.65 * var(--size));
-        left: calc(0.2 * var(--size));
-        height: calc(0.1 * var(--size));
-        width: calc(0.35 * var(--size));
-        font-size: calc(0.2 * var(--size));
-        transform-origin: 0 0 calc(-0.4 * var(--size));
+      .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        text-align: center;
+        color: #9ca3af;
+        gap: 8px;
       }
 
-      .checkbox-wrapper-5 .check input[type="checkbox"]:checked + label::before,
-      .checkbox-wrapper-5 .check input[type="checkbox"]:checked + label::after {
-        left: calc(1.55 * var(--size));
-        top: calc(0.4 * var(--size));
-        line-height: calc(0.1 * var(--size));
-        transform: rotateY(360deg);
+      .empty-state p {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 400;
       }
 
-      .checkbox-wrapper-5 .check input[type="checkbox"]:checked + label::after {
-        height: calc(0.16 * var(--size));
-        top: calc(0.55 * var(--size));
-        left: calc(1.6 * var(--size));
-        font-size: calc(0.6 * var(--size));
-        line-height: 0;
+      .empty-state p:first-child {
+        font-weight: 500;
+        font-size: 14px;
+        color: #6b7280;
+      }
+
+      .button-group {
+        display: flex;
+        gap: 8px;
+      }
+
+      /* Primary button variant */
+      button.primary {
+        background: #4f46e5;
+        color: #ffffff;
+        border-color: #4f46e5;
+      }
+
+      button.primary:hover {
+        background: #4338ca;
+        border-color: #4338ca;
       }
     </style>
   </head>
   <body>
     <div>
-      <h1>BlockNotes.</h1>
+      <h1>BLOCKNOTES SETTINGS</h1>
       <div id="home">
         <img
           src="./public/uicons/uicons-round-medium-outline-home.svg"
-          alt="Clipboard Icon"
+          alt="Home"
           width="20"
           height="20"
         />
       </div>
     </div>
 
-    <!-- <hr /> -->
     <section>
-      <img class="random-image" id="bang-0" src="./public/svg/nice_star.svg" />
-      <img class="random-image" id="bang-1" src="./public/svg/coral_2.svg" />
-      <img class="random-image" id="bang-2" src="./public/svg/luck.svg" />
-      <img class="random-image" id="bang-4" src="./public/svg/nice_star.svg" />
-
-      <div id="auto-name-setting">
-        <h2>AI Naming</h2>
-        <button id="info">Info</button>
-        <button id="setting-naming">Set</button>
-      </div>
-
-      <div id="setting-slash">
-        <h2>Use Ctrl + /</h2>
-        <div class="checkbox-wrapper-5">
-          <div class="check">
-            <input checked="" id="check-5" type="checkbox" />
-            <label for="check-5"></label>
+      <div id="auto-name-setting" class="setting-card">
+        <div class="setting-card-header">
+          <div>
+            <h2>AI Naming</h2>
+            <p class="section-desc">
+              Automatically name your notes using Gemini AI
+            </p>
+          </div>
+          <div class="button-group">
+            <button id="info">Info</button>
+            <button id="setting-naming" class="primary">Setup</button>
           </div>
         </div>
       </div>
 
-      <div id="note-container">
-        <!-- <h2>Your Notes</h2> -->
-        <h2>Select a note to paste it.</h2>
-        <ul id="notes-list"></ul>
+      <div id="setting-slash" class="setting-card">
+        <div class="setting-card-header">
+          <div>
+            <h2>Quick Paste</h2>
+            <p class="section-desc">
+              Press Ctrl + / to quickly paste your last note
+            </p>
+          </div>
+          <div class="checkbox-wrapper-5">
+            <div class="check">
+              <input id="check-5" type="checkbox" />
+              <label for="check-5"></label>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <!-- <div id="note-container">
+        <div class="section-header">
+          <h2>Your Notes</h2>
+          <p class="section-desc">
+            Click any note to paste it into the active page
+          </p>
+        </div>
+        <ul id="notes-list"></ul>
+      </div> -->
     </section>
 
-    <footer>
-      <p>
-        Neo-brutalism blends raw aesthetics with modern elements, emphasizing
-        utilitarian design.
-      </p>
-      <!-- <h2>
-        <a
-          href="https://tomaslawton.netlify.app"
-          target="_blank"
-          class="footer-text"
-          >Made by Tommy 💚</a
-        >
-      </h2> -->
-    </footer>
     <script src="popup.js"></script>
   </body>
 </html>

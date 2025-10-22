@@ -2,21 +2,219 @@
 <html lang="en">
   <head>
     <title>BlockNotes</title>
-
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1" name="viewport" />
     <link rel="stylesheet" href="public/styles.css" />
     <link rel="icon" type="image/x-icon" href="/public/favicon.ico" />
+    <style>
+      /* Professional Brutalist Enhancements */
+
+      /* Input zone with enhanced depth */
+      #input-zone {
+        border-width: 5px;
+        box-shadow: 0.4rem 0.4rem #05060f,
+          inset 0 2px 0 rgba(255, 255, 255, 0.3);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      #input-zone:hover {
+        box-shadow: 0.6rem 0.6rem #05060f,
+          inset 0 2px 0 rgba(255, 255, 255, 0.3);
+        transform: translate(-2px, -2px);
+      }
+
+      #input-zone label {
+        font-size: 1.1rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: -0.5px;
+      }
+
+      /* Professional input styling */
+      #note-input {
+        border-width: 4px;
+        font-weight: 500;
+        box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.15);
+        transition: all 0.2s ease;
+      }
+
+      #note-input:focus {
+        outline: none;
+        box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.15),
+          0 0 0 4px rgba(27, 237, 202, 0.4);
+        transform: translateY(-1px);
+      }
+
+      #note-input::placeholder {
+        font-weight: 500;
+      }
+
+      /* Enhanced button */
+      #instant-paste {
+        border-width: 4px;
+        box-shadow: 0.25rem 0.25rem #05060f;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      #instant-paste:hover {
+        box-shadow: 0.35rem 0.35rem #05060f;
+        transform: translate(-2px, -2px);
+        background: #4fe803;
+      }
+
+      #instant-paste:active {
+        box-shadow: 0.1rem 0.1rem #05060f;
+        transform: translate(1px, 1px);
+      }
+
+      .icon-circle {
+        border-width: 3px;
+        box-shadow: 0.1rem 0.1rem #05060f;
+      }
+
+      /* Enhanced notes cards */
+      .note {
+        border-width: 5px;
+        box-shadow: 0.3rem 0.3rem #05060f;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .note:hover {
+        box-shadow: 0.5rem 0.5rem #05060f;
+        transform: translate(-2px, -2px);
+      }
+
+      .note-header {
+        border-bottom: 3px solid #05060f;
+      }
+
+      /* Enhanced buttons in notes */
+      .edit,
+      .delete-btn,
+      .copy-btn,
+      .accept,
+      .discard {
+        border-width: 4px;
+        box-shadow: 0.15rem 0.15rem #05060f;
+        font-weight: 700;
+        transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .edit:hover,
+      .delete-btn:hover,
+      .copy-btn:hover,
+      .accept:hover,
+      .discard:hover {
+        box-shadow: 0.25rem 0.25rem #05060f;
+        transform: translate(-1px, -1px);
+      }
+
+      .edit:active,
+      .delete-btn:active,
+      .copy-btn:active,
+      .accept:active,
+      .discard:active {
+        box-shadow: 0.08rem 0.08rem #05060f;
+        transform: translate(1px, 1px);
+      }
+
+      /* Enhanced message box */
+      #note-message {
+        border-width: 5px;
+        box-shadow: 0.4rem 0.4rem #05060f;
+      }
+
+      #note-message p {
+        font-weight: 600;
+        line-height: 1.7;
+      }
+
+      footer h2 a {
+        font-weight: 800;
+        transition: all 0.2s ease;
+      }
+
+      footer h2 a:hover {
+        transform: translateY(-2px);
+      }
+
+      #coffee {
+        border: 5px solid #05060f;
+        box-shadow: 0.3rem 0.3rem #05060f;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      #coffee:hover {
+        box-shadow: 0.5rem 0.5rem #05060f;
+        transform: translate(-2px, -2px);
+      }
+
+      /* Drag handle enhancement */
+      .drag-handle {
+        border-width: 4px;
+        box-shadow: 0.15rem 0.15rem #05060f;
+        font-weight: 700;
+      }
+
+      /* Enhanced animations */
+      @keyframes bubble {
+        0%,
+        100% {
+          transform: translate(50%, -50%) scale(1);
+        }
+        50% {
+          transform: translate(50%, -50%) scale(1.15);
+        }
+      }
+
+      #bang-1,
+      #bang-0,
+      #bang-4,
+      #bang-2 {
+        filter: drop-shadow(3px 3px 0 rgba(5, 6, 15, 0.3));
+      }
+
+      /* Typography enhancement */
+      body {
+        font-weight: 500;
+      }
+
+      h1,
+      h2 {
+        font-weight: 800;
+        letter-spacing: -1.5px;
+      }
+
+      .line-break {
+        border-width: 5px;
+        box-shadow: 0.4rem 0.4rem #05060f;
+        font-weight: 900;
+      }
+
+      /* Stronger visual hierarchy */
+      .note-title {
+        font-weight: 800;
+        letter-spacing: -0.5px;
+      }
+
+      .note-text {
+        font-weight: 500;
+      }
+
+      .note-date {
+        font-weight: 600;
+      }
+    </style>
   </head>
   <body>
-    <!-- <img id="wire" src="./public/svg/wire.svg" /> -->
     <img id="orb" src="./public/svg/orb.svg" />
     <img class="background-svg-animate" src="./public/svg/spike.svg" />
     <img class="background-svg-animate" src="./public/svg/star_2.svg" />
     <img class="background-svg-animate" src="./public/svg/star.svg" />
     <img class="background-svg-animate" src="./public/svg/blob_2.svg" />
-    <!-- <img class="background-svg shape-1" src="./public/svg/draw.svg" /> -->
-    <img class="shape-2" src="./public/svg/draw2.svg" />    
+    <img class="shape-2" src="./public/svg/draw2.svg" />
     <img class="shape-4" src="./public/svg/draw4.svg" />
     <img class="shape-5" src="./public/svg/draw5.svg" />
 
@@ -27,7 +225,6 @@
           <span class="line-break">BlockNotes.</span>
         </h1>
       </div>
-
       <img id="header-shape-2" src="./public/svg/ball_text.svg" />
     </header>
 
@@ -39,9 +236,7 @@
 
       <div id="input-zone">
         <img id="stars" src="./public/svg/stars.svg" />
-        <label for="Paste Zone"
-          >Paste Zone <span class="gesture">🤌</span></label
-        >
+        <label for="note-input">Paste Zone 🤌</label>
         <div id="inputs">
           <input
             id="note-input"
@@ -53,7 +248,7 @@
             <div class="icon-circle">
               <img
                 src="./public/uicons/uicons-round-medium-outline-tray-in.svg"
-                alt="Clipboard Icon"
+                alt="Clipboard"
                 width="20"
                 height="20"
               />
@@ -65,14 +260,16 @@
           Type "/" to start making a note from clipboard or paste immediately.
         </p>
       </div>
+
       <div id="notes" class="container"></div>
+
       <div id="note-message">
         <p>
-          Your notes appear here... On any page, you can type “/” followed by
-          the name to insert a note.
-          <br />
-          <br />
-          Enable autonaming by adding a free Gemini Pro API key to the toolbar popup from any other webpage.
+          Your notes appear here... On any page, type "/" followed by the name
+          to insert a note.
+          <br /><br />
+          Enable autonaming by adding a free Gemini Pro API key to the toolbar
+          popup from any other webpage.
         </p>
       </div>
     </section>
@@ -83,18 +280,20 @@
           href="https://tomaslawton.netlify.app"
           target="_blank"
           class="footer-text"
-          >Made by Tommy 💚</a
         >
+          Made by Tommy 💚
+        </a>
       </h2>
 
       <img id="header-shape" src="./public/svg/ball_text.svg" />
 
-      <a href="https://www.buymeacoffee.com/tomaslawton" target="_blank"
-        ><img
+      <a href="https://www.buymeacoffee.com/tomaslawton" target="_blank">
+        <img
           src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
           alt="Buy Me A Coffee"
           id="coffee"
-      /></a>
+        />
+      </a>
     </footer>
 
     <script type="module" src="./src/main.js"></script>

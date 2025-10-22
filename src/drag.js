@@ -2,6 +2,7 @@ import { playPop } from "./sounds.js";
 
 // Detect screen width initially
 let isVerticalOnly = window.innerWidth <= 1000;
+let isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
 export function updateDragDropListeners() {
   const draggables = document.querySelectorAll(".draggable");
@@ -10,18 +11,22 @@ export function updateDragDropListeners() {
   // Update the drag mode on resize events
   window.addEventListener("resize", () => {
     isVerticalOnly = window.innerWidth <= 1000;
-    handleDragHandleVisibility(); // Recheck drag handle visibility on resize
+    handleDragHandleVisibility();
   });
 
   draggables.forEach((draggable) => {
     let originalContainer = null;
     let originalIndex = null;
+    let touchStartY = 0;
+    let touchStartX = 0;
+    let isDragging = false;
+    let placeholder = null;
 
     // Select the drag handle within the draggable note
     const dragHandle = draggable.querySelector(".drag-handle");
 
-    // Desktop drag events
-    draggable.addEventListener("dragstart", () => {
+    // ============ DESKTOP DRAG EVENTS ============
+    draggable.addEventListener("dragstart", (e) => {
       draggable.classList.add("dragging");
       originalContainer = draggable.closest(".container");
       originalIndex = Array.from(originalContainer.children).indexOf(draggable);
@@ -36,90 +41,187 @@ export function updateDragDropListeners() {
       }
     });
 
-    // Touch drag events (for touch devices, we'll only start dragging on the drag-handle)
+    // ============ MOBILE/TOUCH DRAG EVENTS ============
     if (dragHandle) {
       dragHandle.addEventListener("touchstart", (e) => {
         e.preventDefault();
+        e.stopPropagation();
+        
+        isDragging = true;
+        const touch = e.touches[0];
+        touchStartY = touch.clientY;
+        touchStartX = touch.clientX;
+        
         draggable.classList.add("dragging");
         originalContainer = draggable.closest(".container");
-        originalIndex = Array.from(originalContainer.children).indexOf(
-          draggable
-        );
+        originalIndex = Array.from(originalContainer.children).indexOf(draggable);
+        
+        // Create placeholder
+        placeholder = document.createElement("div");
+        placeholder.style.height = `${draggable.offsetHeight}px`;
+        placeholder.style.width = `${draggable.offsetWidth}px`;
+        placeholder.style.border = "4px dashed #05060f";
+        placeholder.style.borderRadius = "2rem";
+        placeholder.style.background = "rgba(5, 6, 15, 0.05)";
+        placeholder.style.margin = draggable.style.margin;
+        
+        // Store original styles
+        draggable.dataset.originalPosition = draggable.style.position || 'static';
+        draggable.dataset.originalZIndex = draggable.style.zIndex || 'auto';
+        draggable.dataset.originalWidth = draggable.style.width || '';
+        draggable.dataset.originalLeft = draggable.style.left || '';
+        draggable.dataset.originalTop = draggable.style.top || '';
+        
+        // Make draggable float
+        const rect = draggable.getBoundingClientRect();
+        draggable.style.position = "fixed";
+        draggable.style.zIndex = "10000";
+        draggable.style.width = `${rect.width}px`;
+        draggable.style.left = `${rect.left}px`;
+        draggable.style.top = `${rect.top}px`;
+        draggable.style.transition = "none";
+        draggable.style.opacity = "0.9";
+        draggable.style.pointerEvents = "none";
+        
+        // Insert placeholder where element was
+        draggable.parentNode.insertBefore(placeholder, draggable.nextSibling);
       });
 
       dragHandle.addEventListener("touchmove", (e) => {
+        if (!isDragging) return;
+        
         e.preventDefault();
+        e.stopPropagation();
+        
         const touch = e.touches[0];
-        const container = draggable.closest(".container");
-        const containerRect = container.getBoundingClientRect(); // Get container's position
-
-        draggable.style.position = "absolute";
-        draggable.style.zIndex = "10"; // Make sure it's above other elements
-        draggable.style.pointerEvents = "none"; // Prevent interaction with the dragged element itself
-
-        if (isVerticalOnly) {
-          draggable.style.top = `${
-            touch.clientY - draggable.offsetHeight / 2
-          }px`; // Vertical movement
-        } else {
-          draggable.style.left = `${
-            touch.clientX - draggable.offsetWidth / 2
-          }px`; // X movement
-          draggable.style.top = `${
-            touch.clientY - draggable.offsetHeight / 2
-          }px`; // Y movement
-        }
-
-        // Check if touch position is near the top of the container (insert at position 0)
-        const afterElement = getDragAfterElement(
-          container,
-          touch.clientX,
-          touch.clientY
+        const deltaY = touch.clientY - touchStartY;
+        const deltaX = touch.clientX - touchStartX;
+        
+        // Move the element with touch
+        const currentLeft = parseFloat(draggable.dataset.originalLeft) || touch.clientX - draggable.offsetWidth / 2;
+        const currentTop = parseFloat(draggable.dataset.originalTop) || touch.clientY - draggable.offsetHeight / 2;
+        
+        draggable.style.left = `${touch.clientX - draggable.offsetWidth / 2}px`;
+        draggable.style.top = `${touch.clientY - draggable.offsetHeight / 2}px`;
+        
+        // Find where to insert based on touch position
+        const container = originalContainer;
+        const children = Array.from(container.children).filter(child => 
+          child !== draggable && child !== placeholder && child.classList.contains('draggable')
         );
-
-        // If touch position is near the top of the container, insert at the first position
-        if (touch.clientY <= containerRect.top + 1) {
-          container.prepend(draggable); // Insert at the start of the container
-        } else if (afterElement == null) {
-          container.appendChild(draggable); // Insert at the end of the container
-        } else {
-          container.insertBefore(draggable, afterElement); // Insert at the correct position
+        
+        let insertBefore = null;
+        let minDistance = Infinity;
+        
+        children.forEach(child => {
+          const childRect = child.getBoundingClientRect();
+          const childCenter = childRect.top + childRect.height / 2;
+          const distance = Math.abs(touch.clientY - childCenter);
+          
+          if (distance < minDistance) {
+            minDistance = distance;
+            if (touch.clientY < childCenter) {
+              insertBefore = child;
+            } else {
+              insertBefore = child.nextSibling;
+            }
+          }
+        });
+        
+        // Move placeholder
+        if (placeholder && placeholder.parentNode === container) {
+          if (insertBefore === null) {
+            container.appendChild(placeholder);
+          } else if (insertBefore !== placeholder && insertBefore !== placeholder.nextSibling) {
+            container.insertBefore(placeholder, insertBefore);
+          }
         }
       });
 
       dragHandle.addEventListener("touchend", (e) => {
+        if (!isDragging) return;
+        
         e.preventDefault();
-        // Reset position and styles after dragging
-        draggable.style.position = "static"; // Reset the position
-        draggable.style.zIndex = ""; // Remove z-index
-        draggable.style.pointerEvents = ""; // Re-enable interaction
-
-        // Stop dragging
+        e.stopPropagation();
+        
+        isDragging = false;
+        
+        // Reset styles
+        draggable.style.position = draggable.dataset.originalPosition;
+        draggable.style.zIndex = draggable.dataset.originalZIndex;
+        draggable.style.width = draggable.dataset.originalWidth;
+        draggable.style.left = draggable.dataset.originalLeft;
+        draggable.style.top = draggable.dataset.originalTop;
+        draggable.style.transition = "";
+        draggable.style.opacity = "1";
+        draggable.style.pointerEvents = "";
+        
+        // Replace placeholder with actual element
+        if (placeholder && placeholder.parentNode) {
+          placeholder.parentNode.insertBefore(draggable, placeholder);
+          placeholder.remove();
+        }
+        
+        placeholder = null;
         draggable.classList.remove("dragging");
-
+        
         const newContainer = draggable.closest(".container");
         if (newContainer) {
           updateDisplayIndexes();
           playPop();
         }
       });
+
+      // Handle touch cancel
+      dragHandle.addEventListener("touchcancel", (e) => {
+        if (!isDragging) return;
+        
+        isDragging = false;
+        
+        // Reset styles
+        draggable.style.position = draggable.dataset.originalPosition;
+        draggable.style.zIndex = draggable.dataset.originalZIndex;
+        draggable.style.width = draggable.dataset.originalWidth;
+        draggable.style.left = draggable.dataset.originalLeft;
+        draggable.style.top = draggable.dataset.originalTop;
+        draggable.style.opacity = "1";
+        draggable.style.pointerEvents = "";
+        
+        if (placeholder && placeholder.parentNode) {
+          placeholder.remove();
+        }
+        placeholder = null;
+        draggable.classList.remove("dragging");
+      });
     }
 
     // Prevent drag initiation if touch is not on the drag handle
     draggable.addEventListener("touchstart", (e) => {
-      if (e.target !== dragHandle) {
-        e.stopPropagation(); // Prevent drag if the target is not the drag-handle
+      if (!dragHandle?.contains(e.target)) {
+        e.stopPropagation();
       }
     });
   });
 
+  // ============ DESKTOP CONTAINER DRAG OVER ============
   containers.forEach((container) => {
     container.addEventListener("dragover", (e) => {
       e.preventDefault();
       const afterElement = getDragAfterElement(container, e.clientX, e.clientY);
       const draggable = document.querySelector(".dragging");
 
-      if (afterElement == null) {
+      if (!draggable) return;
+
+      // Handle insertion
+      const firstChild = container.firstElementChild;
+      const firstChildRect = firstChild?.getBoundingClientRect();
+      
+      // Top insertion
+      if (firstChildRect && e.clientY < firstChildRect.top + firstChildRect.height / 4) {
+        if (container.firstElementChild !== draggable) {
+          container.insertBefore(draggable, container.firstElementChild);
+        }
+      } else if (afterElement == null) {
         container.appendChild(draggable);
       } else {
         container.insertBefore(draggable, afterElement);
@@ -141,38 +243,35 @@ function getDragAfterElement(container, x, y) {
         draggableElements[index + 1] &&
         draggableElements[index + 1].getBoundingClientRect();
 
-      // Check if we are within the same row
-      const inRow = y - box.bottom <= 0 && y - box.top >= 0;
-      const offsetX = x - (box.left + box.width / 2);
-
-      // For vertical-only dragging, we only care about the Y-axis
-      if (inRow) {
-        if (offsetX < 0 && offsetX > closest.offset) {
-          return {
-            offset: offsetX,
-            element: child,
-          };
-        } else {
-          // If not in the same row, check if the next box is in the new row
-          if (
-            nextBox && // There's a box after this one
-            y - nextBox.top <= 0 && // The next box is in a new row
-            closest.offset === Number.NEGATIVE_INFINITY // We didn't find a fit in the current row
-          ) {
-            return {
-              offset: 0,
-              element: draggableElements[index + 1],
-            };
-          }
-          return closest;
+      // For vertical-only layout (mobile)
+      if (isVerticalOnly) {
+        const offsetY = y - (box.top + box.height / 2);
+        if (offsetY < 0 && offsetY > closest.offset) {
+          return { offset: offsetY, element: child };
         }
       } else {
-        return closest;
+        // For desktop grid layout
+        const centerY = box.top + box.height / 2;
+        const inRow = Math.abs(y - centerY) < box.height / 2;
+        const offsetX = x - (box.left + box.width / 2);
+
+        if (inRow) {
+          if (offsetX < 0 && offsetX > closest.offset) {
+            return { offset: offsetX, element: child };
+          }
+        } else if (
+          nextBox &&
+          y > box.bottom &&
+          y < nextBox.top &&
+          closest.offset === Number.NEGATIVE_INFINITY
+        ) {
+          return { offset: 0, element: draggableElements[index + 1] };
+        }
       }
+      
+      return closest;
     },
-    {
-      offset: Number.NEGATIVE_INFINITY,
-    }
+    { offset: Number.NEGATIVE_INFINITY }
   ).element;
 }
 
@@ -187,26 +286,31 @@ export function updateDisplayIndexes() {
       const dataKey = noteElem.getAttribute("key");
 
       if (savedNotes[dataKey]) {
-        savedNotes[dataKey].displayIndex = totalNotes - 1 - i; // Reverse index order
-        noteElem.setAttribute("display-index", totalNotes - 1 - i); // Set display index
+        savedNotes[dataKey].displayIndex = totalNotes - 1 - i;
+        noteElem.setAttribute("display-index", totalNotes - 1 - i);
       }
     });
 
     chrome.storage.sync.set({ notes: savedNotes }, () => {
-      // console.log("Notes saved:", savedNotes);
+      // Notes saved
     });
   });
 }
 
 function handleDragHandleVisibility() {
   const dragHandles = document.querySelectorAll(".drag-handle");
+  const draggables = document.querySelectorAll(".draggable");
   const isVerticalOnly = window.innerWidth <= 1000;
 
   dragHandles.forEach((handle) => {
     if (isVerticalOnly) {
-      handle.style.display = "flex"; // Show drag handle for small screens
+      handle.style.display = "flex";
     } else {
-      handle.style.display = "none"; // Hide drag handle for larger screens
+      handle.style.display = "none";
     }
+  });
+  
+  draggables.forEach((draggable) => {
+    draggable.setAttribute("draggable", !isVerticalOnly);
   });
 }

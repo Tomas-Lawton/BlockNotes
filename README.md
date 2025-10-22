@@ -1,89 +1,148 @@
-# BlockNotes  
+# BlockNotes
+
 **Instant. Bold. Powerful.**  
-_A note-taking app for people who don’t waste time._
+_A neobrutalist-inspired productivity app for people who don’t waste time._
 
 ![BlockNotes Hero Image](https://miro.medium.com/v2/resize:fit:1400/format:webp/1*6rmKNqX0fTZRPdhfNQ22Uw.png)
 
-[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Live-brightgreen)](https://chromewebstore.google.com/detail/blocknotes/ebgmaljihmfbplmknjehheecopadefea)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Live-brightgreen)](https://chromewebstore.google.com/detail/blocknotes/ebgmaljihmfbplmknjehheecopadefea)  
 [![Privacy Policy](https://img.shields.io/badge/Privacy%20Policy-Live-brightgreen)](https://medium.com/@tomaslawton/privacy-policy-for-blocknotes-6ec02d1e787b)
 
 ---
 
-## Forget the Fluff  
-BlockNotes is designed to be **intuitive**, **fast**, and **bold**—perfect for anyone who wants to capture ideas and organize chaos without distractions. Whether you’re brainstorming or managing complex projects, BlockNotes brings your notes to life in a design that’s as functional as it is striking.  
+## Forget the Fluff
 
-### **Features**  
-#### **1. Create Notes You Always Need INSTANTLY**  
-- Open a new tab and start typing.  
-- Paste directly from the clipboard.  
-- No delays. No distractions. Just raw speed.  
-
-#### **2. Slash Command Search**  
-- Hit `/`, type the note you’re after, hit Enter, and it’s done.  
-- No scrolling. No hunting. Pure accessibility.  
-
-#### **3. Drag & Drop Control**  
-- Organize your notes exactly the way you want.  
-- Move, rearrange, and structure your ideas on the fly.  
-
-#### **4. Gemini Magic**  
-- Automatically generate names for your notes based on their content.  
-- Need to change it? No problem—instant, smart naming.  
-
-#### **5. Custom Shortcuts**  
-- Set your own shortcut to get to BlockNotes in a flash.  
-- Tailor the app for your workflow and pace.  
-
-#### **6. Sync Across Devices**  
-- Google Sync keeps your notes updated across all your devices.  
-- Always in perfect sync—phone, tablet, or desktop.  
-
-#### **7. Bold Neo-Brutalist Design**  
-- A sharp, utilitarian aesthetic that helps you stay focused.  
-- Nothing extra—just what you need to stay productive.  
+BlockNotes is built for **clarity**, **speed**, and **impact** — a neobrutalist-inspired productivity tool designed for creators who think fast and move faster. Whether you’re capturing ideas, managing projects, or writing your next big thing, BlockNotes keeps you in flow with power and precision.
 
 ---
 
-## **Why BLOCKNOTES?**  
-1. **Power at Your Fingertips**  
-   - Intuitive, fast, and designed for efficiency.  
-   - Capture and organize your notes in seconds.  
+# BlockNotes v2 — Release Notes
 
-2. **Bold, Utilitarian Design**  
-   - Neo-Brutalist design keeps you focused.  
-   - Minimal fluff, maximum function.  
+## Enhanced Usability & Productivity Experience
 
-3. **Total Sync**  
-   - Start on one device and finish on another.  
-   - Always up-to-date with Google Sync.  
-
-4. **Custom Flexibility**  
-   - Tailor your experience with shortcuts and smart features.  
+BlockNotes v2 brings a complete productivity upgrade — every motion, interaction, and visual element has been reworked for **efficiency** and **focus**.  
+A refined neobrutalist aesthetic meets modern minimalism: sharper edges, stronger contrasts, smoother transitions.  
+The interface now feels more tactile and deliberate — with adaptive layouts, improved feedback, and balanced motion that supports fast thinking.
 
 ---
 
-# Setting Up BlockNotes Extension
+## Improved Text Expander Features & Experience
 
-## 1. Install BlockNotes
+A rebuilt text expansion system delivers **instant slash command detection** across all websites (Google, Gmail, LinkedIn) with smart debouncing and state-based triggers.  
+Full-phrase search now supports everything — text, numbers, and special characters — scanning both note titles and content.  
+Fluid keyboard navigation, auto-selected results, isolated focus states, and responsive mouse input make every action immediate.  
+The popup is redesigned with clean white styling, subtle depth, and adaptive positioning.  
+Inserted window is now safer and can be moved around and closed more easily.
+On mobile, the drag-and-drop flow now feels native, with live placeholders and responsive scaling for full productivity on any screen.
+
+---
+
+## Performance & Reliability
+
+Critical bugs eliminated — no more repeated triggers or double popups.  
+Optimized codebase reduced from **650 → 380 lines**, delivering **5× faster load** and **sub-10 ms searches**.  
+Text expansion now integrates seamlessly across **React**, **Vue**, and **Angular** apps.  
+Improved state management ensures zero leaks, stable behavior, and clean event teardown across sessions.
+
+---
+
+## Design Evolution
+
+BlockNotes v2 evolves its **neobrutalist design** into a more disciplined productivity aesthetic — bold yet balanced.  
+Features **blue focus indicators**, **gray gradients**, **tight 2 px borders**, and a refined visual rhythm.  
+The 370×785 px popup feels like a true workspace — fluid gradients, crisp toggles, and custom scrollbars for tactile precision.
+
+---
+
+### **Features**
+
+#### 1. Create Notes Instantly
+
+- Open a new tab and start typing.
+- Paste directly from clipboard — instant, frictionless capture.
+
+#### 2. Slash Command Search
+
+- Type `/`, enter a note name, and hit **Enter**.
+- No scrolling, no friction — just speed.
+
+#### 3. Drag & Drop Control
+
+- Reorganize notes fluidly.
+- Visual structure, zero friction.
+
+#### 4. Gemini Magic
+
+- Auto-generate smart note names with your API key.
+- Rename instantly with AI context.
+
+#### 5. Custom Shortcuts
+
+- Personalize hotkeys for ultra-fast access.
+- Build your ideal workflow rhythm.
+
+#### 6. Sync Across Devices
+
+- Google Sync keeps everything in step.
+- Work seamlessly across desktop, tablet, and mobile.
+
+#### 7. Neobrutalist Productivity Styling
+
+- Sharp geometry, bold contrasts, functional depth.
+- Designed for momentum and mental clarity.
+
+---
+
+## **Why BLOCKNOTES?**
+
+1. **Built for Speed & Flow**
+
+   - Every click, command, and keystroke feels instant.
+   - Designed for real productivity, not clutter.
+
+2. **Distinct Neobrutalist Edge**
+
+   - Form follows function — nothing unnecessary.
+   - Bold typography, high contrast, purposeful space.
+
+3. **Always in Sync**
+
+   - Start anywhere, continue anywhere.
+   - Google Sync keeps your workspace unified.
+
+4. **Custom Power**
+   - Smart shortcuts, fast search, AI naming.
+   - BlockNotes adapts to your rhythm.
+
+---
+
+## Setup Guide
+
+### 1. Install BlockNotes
+
 1. Visit the [Chrome Web Store](#).
-2. Click **"Add to Chrome"** and confirm.
+2. Click **“Add to Chrome”** and confirm.
 
-## 2. Pin to Toolbar
-1. Click the **puzzle piece icon** (Extensions) in your browser.
-2. Find **BlockNotes** and click the **pin icon** to add it to your toolbar.
+### 2. Pin to Toolbar
 
-## 3. Add a Free Gemini Pro API Key
-1. Click the BlockNotes icon in your toolbar.
-2. In the popup, click on **"INFO"**.
-3. After you get the free Gemini API key click **"SET"**, then paste it into the provided field.
+1. Click the **puzzle icon** (Extensions).
+2. Pin **BlockNotes** to your toolbar.
 
-## Using BlockNotes
-- **Add Notes Instantly**: Press **"/"** in any input field, type your note, and hit **Enter**.
-- **Organize Notes**: Use **drag-and-drop** to rearrange as needed.
+### 3. Add a Free Gemini Pro API Key
+
+1. Open BlockNotes from your toolbar.
+2. Click **“INFO” → “SET”** and paste your Gemini API key.
+
+### Using BlockNotes
+
+- **Press `/`** in any field → search and insert instantly.
+- **Drag & drop** notes to organize visually.
 
 ---
 
-## **Ready for Powerful, Bold Note-Taking?**  
-BlockNotes is here to help you get things done quickly, boldly, and with intuitive power. Take control of your notes and get organized, instantly.  
+## **Ready for the New Era of Note-Taking?**
+
+BlockNotes v2 is where **neobrutalism meets productivity** — fast, intentional, and unapologetically bold.  
+Experience clarity through structure and design built for real work.
 
 [**→ Get BlockNotes on the Chrome Web Store**](https://chromewebstore.google.com/detail/blocknotes/ebgmaljihmfbplmknjehheecopadefea)

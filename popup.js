@@ -1,16 +1,18 @@
 document.addEventListener("DOMContentLoaded", function () {
-  console.log('Loaded Blocknotes Extension Popup.')
+  console.log("Loaded Blocknotes Extension Popup.");
   const notesList = document.getElementById("notes-list");
   const openButton = document.getElementById("home");
   const slashCheckbox = document.getElementById("check-5");
   const infoButton = document.getElementById("info");
   const setKeyButton = document.getElementById("setting-naming");
-  const autoname = document.getElementById("auto-name-setting")
+  const aiCard = document.getElementById("auto-name-setting");
 
+  // Load settings
   chrome.storage.sync.get("settings", (data) => {
     slashCheckbox.checked = data.settings?.useSlashWithCtrl ?? false;
   });
 
+  // Toggle slash command mode
   slashCheckbox.addEventListener("change", () => {
     const isEnabled = slashCheckbox.checked;
     chrome.storage.sync.get("settings", (data) => {
@@ -22,10 +24,12 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
+  // Info button - open Gemini docs
   infoButton.addEventListener("click", () => {
     window.open("https://ai.google.dev/", "_blank");
   });
 
+  // Setup API key
   setKeyButton.addEventListener("click", () => {
     // Check if container already exists, if so, remove it
     const existingContainer = document.querySelector(".oai-key-container");
@@ -39,70 +43,108 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const inputField = document.createElement("input");
     inputField.type = "text";
-    inputField.placeholder = "Gemini API Key";
+    inputField.placeholder = "Enter Gemini API Key";
 
     const saveButton = document.createElement("button");
-    saveButton.textContent = "UPDATE";
+    saveButton.textContent = "SAVE";
 
     containerDiv.appendChild(inputField);
     containerDiv.appendChild(saveButton);
 
-    autoname.parentNode.insertBefore(containerDiv, autoname.nextSibling);
+    // Insert after AI card
+    aiCard.parentNode.insertBefore(containerDiv, aiCard.nextSibling);
+
+    // Focus the input
+    setTimeout(() => inputField.focus(), 100);
 
     saveButton.addEventListener("click", () => {
-      const AIKEY = inputField.value;
+      const AIKEY = inputField.value.trim();
+      if (!AIKEY) {
+        inputField.style.borderColor = "#ff6b6b";
+        setTimeout(() => {
+          inputField.style.borderColor = "#05060f";
+        }, 500);
+        return;
+      }
+
       chrome.storage.sync.get("settings", (data) => {
         const updatedSettings = {
           ...data.settings,
           key: AIKEY,
         };
         chrome.storage.sync.set({ settings: updatedSettings });
-        containerDiv.remove();
-        console.log("Set Gemini API Key. AIKEY: ",AIKEY || "NONE");
+
+        // Show success feedback
+        saveButton.textContent = "✓ SAVED";
+        saveButton.style.background = "#48dc00";
+
+        setTimeout(() => {
+          containerDiv.remove();
+        }, 800);
+
+        console.log("Set Gemini API Key");
       });
+    });
+
+    // Save on Enter key
+    inputField.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        saveButton.click();
+      }
     });
   });
 
+  // Open full page on home click
   openButton.addEventListener("click", function () {
     chrome.tabs.create({});
   });
 
-  chrome.storage.sync.get("notes", (data) => {
-    const notes = data.notes || {};
-    notesList.innerHTML = "";
+  // Load and display notes
+  // chrome.storage.sync.get("notes", (data) => {
+  //   const notes = data.notes || {};
+  //   notesList.innerHTML = "";
 
-    if (Object.keys(notes).length > 0) {
-      Object.keys(notes).forEach((key) => {
-        const note = notes[key];
-        let li = document.createElement("li");
+  //   if (Object.keys(notes).length > 0) {
+  //     // Sort notes by displayIndex
+  //     const sortedNotes = Object.entries(notes).sort(
+  //       ([, a], [, b]) => (b.displayIndex || 0) - (a.displayIndex || 0)
+  //     );
 
-        const iconWrapper = document.createElement("div");
-        iconWrapper.classList.add("note-icon-wrapper");
+  //     sortedNotes.forEach(([key, note]) => {
+  //       const li = document.createElement("li");
 
-        const icon = document.createElement("img");
-        icon.src = "./public/uicons/uicons-round-medium-outline-tray-in.svg";
-        icon.classList.add("note-icon");
+  //       const iconWrapper = document.createElement("div");
+  //       iconWrapper.classList.add("note-icon-wrapper");
 
-        iconWrapper.appendChild(icon);
-        li.style.backgroundColor = "#fed703";
-        li.appendChild(iconWrapper);
+  //       const icon = document.createElement("img");
+  //       icon.src = "./public/uicons/uicons-round-medium-outline-tray-in.svg";
+  //       icon.classList.add("note-icon");
 
-        // Create a text node and append it separately
-        const noteText = document.createTextNode(
-          note.noteName || `Note ${note.noteIndex + 1}`
-        );
-        li.appendChild(noteText);
-        li.onclick = () => insertNoteIntoActiveTab(note.noteText);
-        notesList.prepend(li);
-      });
-    } else {
-      let li = document.createElement("li");
-      li.textContent = `Notes will appear here.`;
-      li.style.backgroundColor = "#fed703";
-      li.style.pointerEvents = "none"
-      notesList.appendChild(li);
-    }
-  });
+  //       iconWrapper.appendChild(icon);
+  //       li.appendChild(iconWrapper);
+
+  //       // Create note text with truncation
+  //       const noteSpan = document.createElement("span");
+  //       const noteName = note.noteName || `Note ${note.noteIndex + 1}`;
+  //       noteSpan.textContent =
+  //         noteName.length > 30 ? noteName.substring(0, 30) + "..." : noteName;
+  //       noteSpan.title = noteName; // Show full name on hover
+
+  //       li.appendChild(noteSpan);
+  //       li.onclick = () => insertNoteIntoActiveTab(note.noteText);
+  //       notesList.appendChild(li);
+  //     });
+  //   } else {
+  //     // Empty state
+  //     const emptyState = document.createElement("div");
+  //     emptyState.classList.add("empty-state");
+  //     emptyState.innerHTML = `
+  //       <p>No notes yet!</p>
+  //       <p>Open the full app to create your first note.</p>
+  //     `;
+  //     notesList.appendChild(emptyState);
+  //   }
+  // });
 });
 
 function insertNoteIntoActiveTab(note) {
@@ -115,21 +157,3 @@ function insertNoteIntoActiveTab(note) {
     }
   });
 }
-
-function randomizePositions() {
-  const images = document.querySelectorAll(".random-image");
-  const windowWidth = window.innerWidth;
-  const windowHeight = window.innerHeight;
-
-  images.forEach((image) => {
-    // Generate random positions
-    const randomX = Math.floor(Math.random() * (windowWidth - 50)); // subtract 50px for the image size
-    const randomY = Math.floor(Math.random() * (windowHeight - 50));
-
-    // Apply the random positions
-    image.style.left = randomX + "px";
-    image.style.top = randomY + "px";
-  });
-}
-
-randomizePositions();

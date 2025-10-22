@@ -130,6 +130,7 @@ function makeNote(noteText) {
       )
         .then((response) => response.json())
         .then((responseData) => {
+          console.log("Gemini response: ", responseData);
           const suggestedName =
             responseData.candidates[0].content.parts[0].text;
           // console.log(suggestedName)
