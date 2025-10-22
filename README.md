@@ -1,148 +1,127 @@
-# BlockNotes
+# BlockNotes v2
 
 **Instant. Bold. Powerful.**  
-_A neobrutalist-inspired productivity app for people who don’t waste time._
+_A note-taking app for people who don’t waste time, now with improved productivity, reliability, and design._
 
-![BlockNotes Hero Image](https://miro.medium.com/v2/resize:fit:1400/format:webp/1*6rmKNqX0fTZRPdhfNQ22Uw.png)
+![BlockNotes v2 Hero Image](https://via.placeholder.com/1400x600?text=BlockNotes+v2+Hero+Image)
 
-[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Live-brightgreen)](https://chromewebstore.google.com/detail/blocknotes/ebgmaljihmfbplmknjehheecopadefea)  
-[![Privacy Policy](https://img.shields.io/badge/Privacy%20Policy-Live-brightgreen)](https://medium.com/@tomaslawton/privacy-policy-for-blocknotes-6ec02d1e787b)
-
----
-
-## Forget the Fluff
-
-BlockNotes is built for **clarity**, **speed**, and **impact** — a neobrutalist-inspired productivity tool designed for creators who think fast and move faster. Whether you’re capturing ideas, managing projects, or writing your next big thing, BlockNotes keeps you in flow with power and precision.
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Live-brightgreen)](#)  
+[![Privacy Policy](https://img.shields.io/badge/Privacy%20Policy-Live-brightgreen)](#)
 
 ---
 
-# BlockNotes v2 — Release Notes
+## What's New in BlockNotes v2
 
-## Enhanced Usability & Productivity Experience
+BlockNotes v2 focuses on **enhanced usability, productivity, and reliability**, while retaining the clean, bold aesthetics of the original.
 
-BlockNotes v2 brings a complete productivity upgrade — every motion, interaction, and visual element has been reworked for **efficiency** and **focus**.  
-A refined neobrutalist aesthetic meets modern minimalism: sharper edges, stronger contrasts, smoother transitions.  
-The interface now feels more tactile and deliberate — with adaptive layouts, improved feedback, and balanced motion that supports fast thinking.
-
----
-
-## Improved Text Expander Features & Experience
-
-A rebuilt text expansion system delivers **instant slash command detection** across all websites (Google, Gmail, LinkedIn) with smart debouncing and state-based triggers.  
-Full-phrase search now supports everything — text, numbers, and special characters — scanning both note titles and content.  
-Fluid keyboard navigation, auto-selected results, isolated focus states, and responsive mouse input make every action immediate.  
-The popup is redesigned with clean white styling, subtle depth, and adaptive positioning.  
-Inserted window is now safer and can be moved around and closed more easily.
-On mobile, the drag-and-drop flow now feels native, with live placeholders and responsive scaling for full productivity on any screen.
+- **1. Optimized text expander:** Faster, more reliable, with full multi-word, number, and special character search.
+- **2. Improved content positioning:** `content.js` now aligns dynamically, preventing layout jumps.
+- **3. Polished UI:** Refined neobrutalist-inspired productivity styling for faster workflow and clearer focus.
+- **4. Persistent notes:** Notes are now safe across refreshes and app updates via local storage; optional database integration planned for signed-up users.
 
 ---
 
-## Performance & Reliability
+## Text Expander & Workflow Enhancements
 
-Critical bugs eliminated — no more repeated triggers or double popups.  
-Optimized codebase reduced from **650 → 380 lines**, delivering **5× faster load** and **sub-10 ms searches**.  
-Text expansion now integrates seamlessly across **React**, **Vue**, and **Angular** apps.  
-Improved state management ensures zero leaks, stable behavior, and clean event teardown across sessions.
+- **Instant slash commands** on any website (Gmail, Google Docs, LinkedIn).
+- **Full-phrase search** across note names and content.
+- **Keyboard & mouse optimized**: auto-select first results, arrow navigation, isolated focus states.
+- **Mobile ready**: responsive drag-and-drop, visual placeholders, smooth touch gestures.
 
 ---
 
 ## Design Evolution
 
-BlockNotes v2 evolves its **neobrutalist design** into a more disciplined productivity aesthetic — bold yet balanced.  
-Features **blue focus indicators**, **gray gradients**, **tight 2 px borders**, and a refined visual rhythm.  
-The 370×785 px popup feels like a true workspace — fluid gradients, crisp toggles, and custom scrollbars for tactile precision.
+- Transitioned from bright and heavy borders to a **minimal productivity aesthetic**.
+- Features **blue selection indicators, gray gradients, 2px borders** for focus clarity.
+
+![BlockNotes v2 UI](https://via.placeholder.com/600x400?text=BlockNotes+UI+Preview)
 
 ---
 
-### **Features**
+## Features & Capabilities
 
-#### 1. Create Notes Instantly
+### 1. Create Notes Instantly
 
-- Open a new tab and start typing.
-- Paste directly from clipboard — instant, frictionless capture.
+- Open a new tab or paste directly from clipboard.
+- Notes persist safely across refreshes and updates.
 
-#### 2. Slash Command Search
+### 2. Slash Command Search
 
-- Type `/`, enter a note name, and hit **Enter**.
-- No scrolling, no friction — just speed.
+- `/` → type note name → **Enter**.
+- Full support for phrases, numbers, and symbols.
 
-#### 3. Drag & Drop Control
+### 3. Drag & Drop Organization
 
-- Reorganize notes fluidly.
-- Visual structure, zero friction.
+- Reorder, move, and structure notes visually.
+- Mobile-friendly with responsive placeholders.
 
-#### 4. Gemini Magic
+### 4. Gemini Magic (AI Assistance)
 
-- Auto-generate smart note names with your API key.
-- Rename instantly with AI context.
+- Smart note title generation based on content.
+- Instant renaming or AI-suggested updates.
 
-#### 5. Custom Shortcuts
+### 5. Custom Shortcuts
 
-- Personalize hotkeys for ultra-fast access.
-- Build your ideal workflow rhythm.
+- Configure Slash command to use Control + Slash for creating, searching, and navigating notes.
+- Personalize workflow efficiency.
 
-#### 6. Sync Across Devices
+### 6. Persistent & Safe Notes
 
-- Google Sync keeps everything in step.
-- Work seamlessly across desktop, tablet, and mobile.
+- Local storage ensures notes survive refreshes and updates.
+- Optional database planned for paid users to enable cloud sync.
 
-#### 7. Neobrutalist Productivity Styling
+### 7. Neobrutalist Productivity Styling
 
-- Sharp geometry, bold contrasts, functional depth.
-- Designed for momentum and mental clarity.
+- Sharp geometry, bold contrasts, functional spacing.
+- Blue focus indicators, gray gradients, and minimal borders.
 
----
+### 8. Multi-Platform Fluidity
 
-## **Why BLOCKNOTES?**
+- Desktop and mobile optimized.
+- Responsive scaling, touch gestures, and drag-and-drop.
 
-1. **Built for Speed & Flow**
+### 9. Performance Optimized
 
-   - Every click, command, and keystroke feels instant.
-   - Designed for real productivity, not clutter.
-
-2. **Distinct Neobrutalist Edge**
-
-   - Form follows function — nothing unnecessary.
-   - Bold typography, high contrast, purposeful space.
-
-3. **Always in Sync**
-
-   - Start anywhere, continue anywhere.
-   - Google Sync keeps your workspace unified.
-
-4. **Custom Power**
-   - Smart shortcuts, fast search, AI naming.
-   - BlockNotes adapts to your rhythm.
+- Sub-10ms search and instant popup load.
+- No repeated triggers, memory leaks, or state conflicts.
 
 ---
 
 ## Setup Guide
 
-### 1. Install BlockNotes
+### 1. Install BlockNotes v2
 
-1. Visit the [Chrome Web Store](#).
-2. Click **“Add to Chrome”** and confirm.
+- Visit [Chrome Web Store](#) → **Add to Chrome**.
 
 ### 2. Pin to Toolbar
 
-1. Click the **puzzle icon** (Extensions).
-2. Pin **BlockNotes** to your toolbar.
+- Open Extensions → Pin **BlockNotes**.
 
-### 3. Add a Free Gemini Pro API Key
+### 3. Add Free Gemini Pro API Key
 
-1. Open BlockNotes from your toolbar.
-2. Click **“INFO” → “SET”** and paste your Gemini API key.
+- Open BlockNotes → **INFO → SET** → paste key.
 
-### Using BlockNotes
+### Using BlockNotes v2
 
-- **Press `/`** in any field → search and insert instantly.
-- **Drag & drop** notes to organize visually.
+- Press `/` → search or insert instantly.
+- Drag & drop notes to organize visually.
+- Use custom shortcuts for full workflow speed.
 
 ---
 
-## **Ready for the New Era of Note-Taking?**
+## Why BlockNotes v2?
 
-BlockNotes v2 is where **neobrutalism meets productivity** — fast, intentional, and unapologetically bold.  
-Experience clarity through structure and design built for real work.
+1. **Enhanced Speed & Flow** – All actions feel instant.
+2. **Persistent & Safe Notes** – Notes survive refreshes; optional cloud support planned.
+3. **AI Assistance** – Context-aware naming and suggestions.
+4. **Neobrutalist Productivity Design** – Bold, clear, functional interface.
+5. **Complete Workflow Customization** – Hotkeys, drag-and-drop, labels, pinning, and more.
 
-[**→ Get BlockNotes on the Chrome Web Store**](https://chromewebstore.google.com/detail/blocknotes/ebgmaljihmfbplmknjehheecopadefea)
+---
+
+## Get Started
+
+BlockNotes v2 is **fast, bold, and production-ready**—with persistent notes, polished design, and improved usability.
+
+[**→ Get BlockNotes v2 on the Chrome Web Store**](#)

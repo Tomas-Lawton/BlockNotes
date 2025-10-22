@@ -1,7 +1,4 @@
-/**
- * BlockNotes Content Script - Final Version
- * Minimal, beautiful, and robust with draggable header
- */
+// Content script for BlockNotes Chrome Extension
 
 // ============================================
 // STATE
