@@ -4,206 +4,812 @@
     <title>BlockNotes</title>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1" name="viewport" />
-    <link rel="stylesheet" href="public/styles.css" />
     <link rel="icon" type="image/x-icon" href="/public/favicon.ico" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Lexend+Mega:wght@100..900&family=Reenie+Beanie&display=swap"
+    />
     <style>
-      /* Professional Brutalist Enhancements */
-
-      /* Input zone with enhanced depth */
-      #input-zone {
-        border-width: 5px;
-        box-shadow: 0.4rem 0.4rem #05060f,
-          inset 0 2px 0 rgba(255, 255, 255, 0.3);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      :root {
+        --primary: #6366f1;
+        --primary-dark: #4f46e5;
+        --secondary: #f59e0b;
+        --accent: #10b981;
+        --background: #f8fafc;
+        --surface: #ffffff;
+        --text-primary: #1e293b;
+        --text-secondary: #64748b;
+        --border: #e2e8f0;
+        --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 20px 40px -10px rgba(0, 0, 0, 0.15);
       }
 
-      #input-zone:hover {
-        box-shadow: 0.6rem 0.6rem #05060f,
-          inset 0 2px 0 rgba(255, 255, 255, 0.3);
-        transform: translate(-2px, -2px);
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
       }
 
-      #input-zone label {
-        font-size: 1.1rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: -0.5px;
-      }
-
-      /* Professional input styling */
-      #note-input {
-        border-width: 4px;
-        font-weight: 500;
-        box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.15);
-        transition: all 0.2s ease;
-      }
-
-      #note-input:focus {
-        outline: none;
-        box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.15),
-          0 0 0 4px rgba(27, 237, 202, 0.4);
-        transform: translateY(-1px);
-      }
-
-      #note-input::placeholder {
-        font-weight: 500;
-      }
-
-      /* Enhanced button */
-      #instant-paste {
-        border-width: 4px;
-        box-shadow: 0.25rem 0.25rem #05060f;
-        font-weight: 800;
-        letter-spacing: -0.5px;
-        transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-
-      #instant-paste:hover {
-        box-shadow: 0.35rem 0.35rem #05060f;
-        transform: translate(-2px, -2px);
-        background: #4fe803;
-      }
-
-      #instant-paste:active {
-        box-shadow: 0.1rem 0.1rem #05060f;
-        transform: translate(1px, 1px);
-      }
-
-      .icon-circle {
-        border-width: 3px;
-        box-shadow: 0.1rem 0.1rem #05060f;
-      }
-
-      /* Enhanced notes cards */
-      .note {
-        border-width: 5px;
-        box-shadow: 0.3rem 0.3rem #05060f;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-
-      .note:hover {
-        box-shadow: 0.5rem 0.5rem #05060f;
-        transform: translate(-2px, -2px);
-      }
-
-      .note-header {
-        border-bottom: 3px solid #05060f;
-      }
-
-      /* Enhanced buttons in notes */
-      .edit,
-      .delete-btn,
-      .copy-btn,
-      .accept,
-      .discard {
-        border-width: 4px;
-        box-shadow: 0.15rem 0.15rem #05060f;
-        font-weight: 700;
-        transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-
-      .edit:hover,
-      .delete-btn:hover,
-      .copy-btn:hover,
-      .accept:hover,
-      .discard:hover {
-        box-shadow: 0.25rem 0.25rem #05060f;
-        transform: translate(-1px, -1px);
-      }
-
-      .edit:active,
-      .delete-btn:active,
-      .copy-btn:active,
-      .accept:active,
-      .discard:active {
-        box-shadow: 0.08rem 0.08rem #05060f;
-        transform: translate(1px, 1px);
-      }
-
-      #note-message p {
-        font-weight: 600;
-        line-height: 1.7;
-      }
-
-      footer h2 a {
-        font-weight: 800;
-        transition: all 0.2s ease;
-      }
-
-      footer h2 a:hover {
-        transform: translateY(-2px);
-      }
-
-      #coffee {
-        border: 5px solid #05060f;
-        box-shadow: 0.3rem 0.3rem #05060f;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-
-      #coffee:hover {
-        box-shadow: 0.5rem 0.5rem #05060f;
-        transform: translate(-2px, -2px);
-      }
-
-      /* Drag handle enhancement */
-      .drag-handle {
-        border-width: 4px;
-        box-shadow: 0.15rem 0.15rem #05060f;
-        font-weight: 700;
-      }
-
-      /* Enhanced animations */
-      @keyframes bubble {
-        0%,
-        100% {
-          transform: translate(50%, -50%) scale(1);
-        }
-        50% {
-          transform: translate(50%, -50%) scale(1.15);
-        }
-      }
-
-      #bang-1,
-      #bang-0,
-      #bang-4,
-      #bang-2 {
-        filter: drop-shadow(3px 3px 0 rgba(5, 6, 15, 0.3));
-      }
-
-      /* Typography enhancement */
       body {
+        font-family: "Lexend Mega", sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        overscroll-behavior: none;
+        position: relative;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      p {
+        text-align: center;
         font-weight: 500;
       }
 
       h1,
       h2 {
-        font-weight: 800;
-        letter-spacing: -1.5px;
-      }
-
-      .line-break {
-        border-width: 5px;
-        box-shadow: 0.4rem 0.4rem #05060f;
-        font-weight: 900;
-      }
-
-      /* Stronger visual hierarchy */
-      .note-title {
-        font-weight: 800;
+        font-weight: 600;
         letter-spacing: -0.5px;
       }
 
-      .note-text {
+      .line-break {
+        font-family: "Lexend Mega", sans-serif;
+        font-size: 3rem;
+        font-weight: 800;
+        color: white;
+        letter-spacing: -1px;
+        text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        position: relative;
+        display: inline-block;
+      }
+
+      .line-break::after {
+        content: "";
+        position: absolute;
+        bottom: -8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60%;
+        height: 4px;
+        background: linear-gradient(90deg, var(--secondary), var(--accent));
+        border-radius: 2px;
+      }
+
+      /* Main Section */
+      section {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 24px;
+        flex: 1;
+        margin: 4rem;
+        padding: 3rem;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: var(--shadow-lg);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        min-height: calc(100vh - 200px);
+      }
+
+      /* Decorative Elements */
+      .floating-element {
+        position: absolute;
+        opacity: 0.7;
+        filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.1));
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 1;
+      }
+
+      .floating-element:hover {
+        opacity: 0.9;
+        transform: scale(1.1) rotate(5deg);
+      }
+
+      #bang-1 {
+        right: -30px;
+        top: -30px;
+        width: 120px;
+        animation: float 6s ease-in-out infinite;
+      }
+
+      #bang-0 {
+        left: -30px;
+        top: 20%;
+        width: 100px;
+        animation: float 7s ease-in-out infinite 1s;
+      }
+
+      #bang-4 {
+        right: 10%;
+        bottom: -20px;
+        width: 90px;
+        animation: float 5.5s ease-in-out infinite 0.5s;
+      }
+
+      #bang-2 {
+        left: -15px;
+        bottom: 20%;
+        width: 80px;
+        animation: float 6.5s ease-in-out infinite 1.5s;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0) rotate(0deg);
+        }
+        50% {
+          transform: translateY(-20px) rotate(5deg);
+        }
+      }
+
+      /* Input Zone */
+      #input-zone {
+        border: 2px solid rgba(99, 102, 241, 0.2);
+        padding: 2.5rem;
+        border-radius: 20px;
+        background: linear-gradient(
+          135deg,
+          rgba(99, 102, 241, 0.05) 0%,
+          rgba(255, 255, 255, 0.8) 100%
+        );
+        margin-bottom: 2rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(10px);
+      }
+
+      #input-zone:hover {
+        box-shadow: var(--shadow-lg);
+        border-color: rgba(99, 102, 241, 0.4);
+        transform: translateY(-2px);
+      }
+
+      #input-zone:focus-within {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1), var(--shadow-lg);
+        transform: translateY(-2px);
+      }
+
+      #input-zone label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+        font-size: 1.1rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--primary);
+      }
+
+      .input-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        gap: 1rem;
+      }
+
+      .input-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--primary);
+      }
+
+      .stats-inline {
+        display: flex;
+        gap: 1.5rem;
+        align-items: center;
+      }
+
+      .stat-inline {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        padding: 0.5rem 1rem;
+        background: rgba(99, 102, 241, 0.08);
+        border-radius: 12px;
+        transition: all 0.3s ease;
+      }
+
+      .stat-inline:hover {
+        background: rgba(99, 102, 241, 0.15);
+        transform: translateY(-1px);
+      }
+
+      .stat-inline span:first-child {
+        font-weight: 600;
+      }
+
+      .stat-inline .stat-value {
+        font-weight: 700;
+        color: var(--primary);
+        font-size: 0.95rem;
+      }
+
+      #input-zone p {
+        margin-top: 1.5rem;
+        font-size: 0.9rem;
+        opacity: 0.8;
         font-weight: 500;
+        color: var(--text-secondary);
+        line-height: 1.6;
+        text-align: left;
+      }
+
+      #inputs {
+        display: flex;
+        gap: 1rem;
+        align-items: stretch;
+      }
+
+      #note-input {
+        flex: 1;
+        padding: 1.25rem 1.5rem;
+        border: 2px solid var(--border);
+        border-radius: 16px;
+        font-family: "Lexend Mega", sans-serif;
+        font-size: 1rem;
+        font-weight: 400;
+        background: white;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        color: var(--text-primary);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+        line-height: 1.5;
+      }
+
+      #note-input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1),
+          0 4px 12px rgba(0, 0, 0, 0.08);
+      }
+
+      #note-input::placeholder {
+        color: #94a3b8;
+        opacity: 1;
+        font-weight: 400;
+      }
+
+      /* Button */
+      #instant-paste {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1.25rem 2rem;
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--primary-dark) 100%
+        );
+        border: none;
+        border-radius: 14px;
+        font-family: "Lexend Mega", sans-serif;
+        font-size: 1rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        color: white;
+        position: relative;
+        overflow: hidden;
+      }
+
+      #instant-paste::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        );
+        transition: left 0.5s;
+      }
+
+      #instant-paste:hover::before {
+        left: 100%;
+      }
+
+      #instant-paste:hover {
+        background: linear-gradient(
+          135deg,
+          var(--primary-dark) 0%,
+          #4338ca 100%
+        );
+        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+        transform: translateY(-2px);
+      }
+
+      #instant-paste:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+      }
+
+      .icon-circle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        background: rgba(255, 255, 255, 0.25);
+        border-radius: 6px;
+        transition: all 0.3s ease;
+      }
+
+      #instant-paste:hover .icon-circle {
+        background: rgba(255, 255, 255, 0.35);
+        transform: scale(1.1);
+      }
+
+      /* Quick Actions */
+      .quick-actions {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+      }
+
+      .quick-action-btn {
+        padding: 0.75rem 1.5rem;
+        background: rgba(99, 102, 241, 0.08);
+        border: 2px solid rgba(99, 102, 241, 0.2);
+        border-radius: 12px;
+        font-family: "Lexend Mega", sans-serif;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--primary);
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .quick-action-btn:hover {
+        background: rgba(99, 102, 241, 0.15);
+        border-color: var(--primary);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow);
+      }
+
+      /* Notes Container */
+      .container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        justify-content: flex-start;
+        margin-bottom: 2rem;
+      }
+
+      .note {
+        flex: 0 1 calc(33.333% - 1rem);
+        min-width: 280px;
+        background: white;
+        border-radius: 16px;
+        border: 2px solid var(--border);
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .note:hover {
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-4px);
+        border-color: rgba(99, 102, 241, 0.3);
+      }
+
+      .note-content {
+        padding: 1.5rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .note-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+      }
+
+      .note-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        flex: 1;
+        min-width: 150px;
+        line-height: 1.3;
+      }
+
+      .note-text {
+        color: var(--text-secondary);
+        line-height: 1.6;
+        font-size: 0.95rem;
+        word-wrap: break-word;
+        white-space: pre-wrap;
+        flex: 1;
+      }
+
+      .note-actions {
+        display: flex;
+        gap: 0.75rem;
+        padding: 1rem 1.5rem;
+        background: rgba(248, 250, 252, 0.8);
+        border-top: 1px solid var(--border);
+        align-items: center;
+        justify-content: space-between;
       }
 
       .note-date {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        opacity: 0.7;
+      }
+
+      .copy-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: rgba(16, 185, 129, 0.1);
+        border: 2px solid rgba(16, 185, 129, 0.2);
+        border-radius: 10px;
+        font-family: "Lexend Mega", sans-serif;
+        font-size: 0.85rem;
         font-weight: 600;
+        color: var(--accent);
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .copy-btn:hover {
+        background: rgba(16, 185, 129, 0.15);
+        box-shadow: var(--shadow);
+        transform: translateY(-2px);
+      }
+
+      .edit,
+      .delete-btn,
+      .accept,
+      .discard {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 2px solid transparent;
+      }
+
+      .edit {
+        background: #dbeafe;
+        border-color: #bfdbfe;
+        color: #2563eb;
+      }
+
+      .edit:hover {
+        background: #bfdbfe;
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-2px);
+      }
+
+      .delete-btn {
+        background: #fee2e2;
+        border-color: #fecaca;
+        color: #dc2626;
+      }
+
+      .delete-btn:hover {
+        background: #fecaca;
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-2px);
+      }
+
+      .accept {
+        background: #dcfce7;
+        border-color: #bbf7d0;
+        display: none;
+        color: #16a34a;
+      }
+
+      .accept:hover {
+        background: #bbf7d0;
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-2px);
+      }
+
+      .discard {
+        background: #fef3c7;
+        border-color: #fde68a;
+        display: none;
+        color: #d97706;
+      }
+
+      .discard:hover {
+        background: #fde68a;
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-2px);
+      }
+
+      .drag-handle {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem;
+        cursor: grab;
+        color: var(--text-secondary);
+        opacity: 0.5;
+        transition: opacity 0.3s ease;
+      }
+
+      .drag-handle:hover {
+        opacity: 1;
+      }
+
+      .drag-handle:active {
+        cursor: grabbing;
+      }
+
+      /* Note Message */
+      #note-message {
+        margin-top: 2rem;
+        padding: 2rem;
+        background: linear-gradient(
+          135deg,
+          rgba(248, 250, 252, 0.8) 0%,
+          rgba(241, 245, 249, 0.8) 100%
+        );
+        border-radius: 16px;
+        border: 1px solid rgba(226, 232, 240, 0.6);
+        backdrop-filter: blur(10px);
+      }
+
+      #note-message p {
+        font-weight: 400;
+        line-height: 1.7;
+        opacity: 0.9;
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+        text-align: left;
+      }
+
+      /* Footer */
+      footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 2rem;
+        position: relative;
+        margin-top: auto;
+        padding-top: 2.5rem;
+        border-top: 1px solid rgba(226, 232, 240, 0.6);
+      }
+
+      footer h2 a {
+        font-weight: 600;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-size: 1rem;
+        color: var(--text-secondary);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem 1.75rem;
+        border-radius: 14px;
+        background: rgba(99, 102, 241, 0.1);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+      }
+
+      footer h2 a:hover {
+        color: var(--primary);
+        background: rgba(99, 102, 241, 0.15);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow);
+      }
+
+      #coffee {
+        height: 55px !important;
+        width: 200px !important;
+        border-radius: 14px;
+        border: none;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: var(--shadow);
+        opacity: 0.95;
+      }
+
+      #coffee:hover {
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-2px);
+        opacity: 1;
+      }
+
+      /* Background Elements */
+      #orb {
+        width: 100vw;
+        height: 100vh;
+        object-fit: cover;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: -1;
+        opacity: 0.1;
+      }
+
+      .background-svg-animate {
+        position: fixed;
+        z-index: 0;
+        pointer-events: none;
+        opacity: 0.3;
+        transition: all 0.5s ease;
+      }
+
+      .shape-2,
+      .shape-4,
+      .shape-5 {
+        display: none;
+      }
+
+      /* FIXED EDITING STYLES - Added to fix layout issues during editing */
+      .note.editing {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1), var(--shadow-lg);
+      }
+
+      .note.editing .note-title-input,
+      .note.editing .note-text-input {
+        width: 100%;
+        border: 2px solid var(--border);
+        border-radius: 8px;
+        padding: 0.75rem;
+        font-family: "Lexend Mega", sans-serif;
+        background: white;
+        resize: none;
+      }
+
+      .note.editing .note-title-input {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 1rem;
+      }
+
+      .note.editing .note-text-input {
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+        line-height: 1.6;
+        min-height: 120px;
+        flex: 1;
+      }
+
+      .note.editing .note-title-input:focus,
+      .note.editing .note-text-input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      }
+
+      .note.editing .note-title,
+      .note.editing .note-text {
+        display: none;
+      }
+
+      .note.editing .edit,
+      .note.editing .delete-btn {
+        display: none;
+      }
+
+      .note.editing .accept,
+      .note.editing .discard {
+        display: flex;
+      }
+
+      /* Responsive Design */
+      @media (max-width: 1200px) {
+        section {
+          margin: 2rem;
+          padding: 2.5rem;
+        }
+
+        .note {
+          flex: 0 1 calc(50% - 0.75rem);
+          min-width: 250px;
+        }
+      }
+
+      @media (max-width: 768px) {
+        section {
+          margin: 1.5rem;
+          padding: 2rem;
+        }
+
+        .line-break {
+          font-size: 2.5rem;
+        }
+
+        .note {
+          flex: 0 1 100%;
+        }
+
+        #inputs {
+          flex-direction: column;
+        }
+
+        #instant-paste {
+          justify-content: center;
+        }
+
+        footer {
+          flex-direction: column;
+          text-align: center;
+        }
+
+        .input-header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .stats-inline {
+          width: 100%;
+          justify-content: space-between;
+        }
+
+        .quick-actions {
+          justify-content: center;
+        }
+      }
+
+      @media (max-width: 480px) {
+        section {
+          margin: 1rem;
+          padding: 1.5rem;
+        }
+
+        .line-break {
+          font-size: 2rem;
+        }
+
+        #input-zone {
+          padding: 2rem;
+        }
+
+        .floating-element {
+          display: none;
+        }
+
+        .note-actions {
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+
+        .background-svg-animate {
+          display: none;
+        }
       }
     </style>
   </head>
   <body>
     <img id="orb" src="./public/svg/orb.svg" />
+
+    <!-- Brutalist background shapes -->
     <img class="background-svg-animate" src="./public/svg/spike.svg" />
     <img class="background-svg-animate" src="./public/svg/star_2.svg" />
     <img class="background-svg-animate" src="./public/svg/star.svg" />
@@ -212,25 +818,39 @@
     <img class="shape-4" src="./public/svg/draw4.svg" />
     <img class="shape-5" src="./public/svg/draw5.svg" />
 
-    <header>
-      <div class="wrapper">
-        <h1>
-          Welcome to...<br />
-          <span class="line-break">BlockNotes.</span>
-        </h1>
-      </div>
-      <img id="header-shape-2" src="./public/svg/ball_text.svg" />
-    </header>
-
     <section>
-      <img id="bang-0" src="./public/svg/nice_star.svg" />
-      <img id="bang-1" src="./public/svg/coral_2.svg" />
-      <img id="bang-2" src="./public/svg/luck.svg" />
-      <img id="bang-4" src="./public/svg/nice_star.svg" />
+      <!-- Floating decorative elements -->
+      <img
+        id="bang-0"
+        class="floating-element"
+        src="./public/svg/nice_star.svg"
+      />
+      <img
+        id="bang-1"
+        class="floating-element"
+        src="./public/svg/coral_2.svg"
+      />
+      <img id="bang-2" class="floating-element" src="./public/svg/luck.svg" />
+      <img
+        id="bang-4"
+        class="floating-element"
+        src="./public/svg/nice_star.svg"
+      />
 
       <div id="input-zone">
-        <img id="stars" src="./public/svg/stars.svg" />
-        <label for="note-input">Paste Zone 🤌</label>
+        <div class="input-header">
+          <div class="input-title">📝 Quick Note Creator</div>
+          <div class="stats-inline">
+            <div class="stat-inline">
+              <span>Notes:</span>
+              <span class="stat-value" id="total-notes">0</span>
+            </div>
+            <div class="stat-inline">
+              <span>Chars:</span>
+              <span class="stat-value" id="total-chars">0</span>
+            </div>
+          </div>
+        </div>
         <div id="inputs">
           <input
             id="note-input"
@@ -252,43 +872,55 @@
         </div>
         <p>
           Type "/" to start making a note from clipboard or paste immediately.
+          Organize your thoughts with beautiful, draggable notes.
         </p>
+      </div>
+
+      <div class="quick-actions">
+        <button class="quick-action-btn" data-action="sort-date">
+          📅 Sort by Date
+        </button>
+        <button class="quick-action-btn" data-action="sort-title">
+          🔤 Sort by Title
+        </button>
+        <button class="quick-action-btn" data-action="clear-all">
+          🗑️ Clear All
+        </button>
       </div>
 
       <div id="notes" class="container"></div>
 
       <div id="note-message">
         <p>
-          Your notes appear here... On any page, type "/" followed by the name
-          to insert a note.
-          <br /><br />
-          Enable autonaming by adding a free Gemini Pro API key to the toolbar
-          popup from any other webpage.
+          ✨ <strong>Welcome to BlockNotes!</strong> Your notes will appear
+          here. <br /><br />
+          💡 <strong>Pro Tip:</strong> Type "/" followed by the note name to
+          quickly insert notes from any page. <br /><br />
+          🚀 <strong>Enhanced Features:</strong> Enable auto-naming by adding
+          your Gemini Pro API key in the extension settings.
         </p>
       </div>
-    </section>
 
-    <footer>
-      <h2>
-        <a
-          href="https://tomaslawton.netlify.app"
-          target="_blank"
-          class="footer-text"
-        >
-          Made by Tommy 💚
+      <footer>
+        <h2>
+          <a
+            href="https://tomaslawton.netlify.app"
+            target="_blank"
+            class="footer-text"
+          >
+            👨‍💻 Made by Tommy
+          </a>
+        </h2>
+
+        <a href="https://www.buymeacoffee.com/tomaslawton" target="_blank">
+          <img
+            src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
+            alt="Buy Me A Coffee"
+            id="coffee"
+          />
         </a>
-      </h2>
-
-      <img id="header-shape" src="./public/svg/ball_text.svg" />
-
-      <a href="https://www.buymeacoffee.com/tomaslawton" target="_blank">
-        <img
-          src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
-          alt="Buy Me A Coffee"
-          id="coffee"
-        />
-      </a>
-    </footer>
+      </footer>
+    </section>
 
     <script type="module" src="./src/main.js"></script>
   </body>

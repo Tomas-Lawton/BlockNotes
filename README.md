@@ -1,127 +1,103 @@
 # BlockNotes v2
 
-**Instant. Bold. Powerful.**  
-_A note-taking app for people who don’t waste time, now with improved productivity, reliability, and design._
-
-![BlockNotes v2 Hero Image](https://via.placeholder.com/1400x600?text=BlockNotes+v2+Hero+Image)
-
-[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Live-brightgreen)](#)  
-[![Privacy Policy](https://img.shields.io/badge/Privacy%20Policy-Live-brightgreen)](#)
+A Chrome extension for saving and inserting text snippets on any website. Type `/` to access your notes instantly.
 
 ---
 
-## What's New in BlockNotes v2
+## What's New in v2
 
-BlockNotes v2 focuses on **enhanced usability, productivity, and reliability**, while retaining the clean, bold aesthetics of the original.
-
-- **1. Optimized text expander:** Faster, more reliable, with full multi-word, number, and special character search.
-- **2. Improved content positioning:** `content.js` now aligns dynamically, preventing layout jumps.
-- **3. Polished UI:** Refined neobrutalist-inspired productivity styling for faster workflow and clearer focus.
-- **4. Persistent notes:** Notes are now safe across refreshes and app updates via local storage; optional database integration planned for signed-up users.
-
----
-
-## Text Expander & Workflow Enhancements
-
-- **Instant slash commands** on any website (Gmail, Google Docs, LinkedIn).
-- **Full-phrase search** across note names and content.
-- **Keyboard & mouse optimized**: auto-select first results, arrow navigation, isolated focus states.
-- **Mobile ready**: responsive drag-and-drop, visual placeholders, smooth touch gestures.
+- **Improved search** – Find notes by numbers, phrases, and special characters
+- **Better popup positioning** – Appears near your cursor, adjusts automatically when space is limited
+- **Cleaner design** – Minimal interface with blue accents and subtle borders
+- **Persistent notes** – All notes saved locally, survive browser restarts
+- **Shift+/ option** – Choose whether slash command requires Shift key
+- **Smart closing** – Type space after `/` to close popup instantly
+- **Edit mode** – Inline editing with accept/discard buttons
+- **Visual drag handles** – Clear indicators for reordering notes
 
 ---
 
-## Design Evolution
+## Key Features
 
-- Transitioned from bright and heavy borders to a **minimal productivity aesthetic**.
-- Features **blue selection indicators, gray gradients, 2px borders** for focus clarity.
+### Instant Text Insertion
 
-![BlockNotes v2 UI](https://via.placeholder.com/600x400?text=BlockNotes+UI+Preview)
+Type `/` on any webpage to open your notes. Start typing to filter, press Enter to insert. Works on Gmail, Google Docs, LinkedIn, Slack, and most text inputs.
 
----
+### Smart Search
 
-## Features & Capabilities
+Search across note titles and content. Supports multi-word phrases, numbers, and special characters. Results update as you type.
 
-### 1. Create Notes Instantly
+### Note Management
 
-- Open a new tab or paste directly from clipboard.
-- Notes persist safely across refreshes and updates.
+- **Create** – Paste or type content, add optional titles
+- **Edit** – Click any note to enter inline edit mode with save/discard options
+- **Reorder** – Drag and drop using visual handles to organize
+- **Delete** – Remove with one click
+- **Copy** – Quick copy to clipboard without inserting
+- **Date tracking** – Each note shows creation date
 
-### 2. Slash Command Search
+### AI Naming (Optional)
 
-- `/` → type note name → **Enter**.
-- Full support for phrases, numbers, and symbols.
+Add a free Gemini API key to auto-generate descriptive titles based on note content.
 
-### 3. Drag & Drop Organization
+### Keyboard Navigation
 
-- Reorder, move, and structure notes visually.
-- Mobile-friendly with responsive placeholders.
+- Arrow keys to navigate results
+- Enter to insert selected note
+- Escape to close popup
+- First result auto-selected for quick insertion
 
-### 4. Gemini Magic (AI Assistance)
+### Two-Column Grid Layout
 
-- Smart note title generation based on content.
-- Instant renaming or AI-suggested updates.
-
-### 5. Custom Shortcuts
-
-- Configure Slash command to use Control + Slash for creating, searching, and navigating notes.
-- Personalize workflow efficiency.
-
-### 6. Persistent & Safe Notes
-
-- Local storage ensures notes survive refreshes and updates.
-- Optional database planned for paid users to enable cloud sync.
-
-### 7. Neobrutalist Productivity Styling
-
-- Sharp geometry, bold contrasts, functional spacing.
-- Blue focus indicators, gray gradients, and minimal borders.
-
-### 8. Multi-Platform Fluidity
-
-- Desktop and mobile optimized.
-- Responsive scaling, touch gestures, and drag-and-drop.
-
-### 9. Performance Optimized
-
-- Sub-10ms search and instant popup load.
-- No repeated triggers, memory leaks, or state conflicts.
+Notes display in a responsive grid that adapts to your screen size, maximizing space and readability.
 
 ---
 
-## Setup Guide
+## Installation
 
-### 1. Install BlockNotes v2
-
-- Visit [Chrome Web Store](#) → **Add to Chrome**.
-
-### 2. Pin to Toolbar
-
-- Open Extensions → Pin **BlockNotes**.
-
-### 3. Add Free Gemini Pro API Key
-
-- Open BlockNotes → **INFO → SET** → paste key.
-
-### Using BlockNotes v2
-
-- Press `/` → search or insert instantly.
-- Drag & drop notes to organize visually.
-- Use custom shortcuts for full workflow speed.
+1. Install from Chrome Web Store
+2. Pin to toolbar for easy access
+3. (Optional) Add Gemini API key in settings
 
 ---
 
-## Why BlockNotes v2?
+## Quick Start
 
-1. **Enhanced Speed & Flow** – All actions feel instant.
-2. **Persistent & Safe Notes** – Notes survive refreshes; optional cloud support planned.
-3. **AI Assistance** – Context-aware naming and suggestions.
-4. **Neobrutalist Productivity Design** – Bold, clear, functional interface.
-5. **Complete Workflow Customization** – Hotkeys, drag-and-drop, labels, pinning, and more.
+**Create a note:**
+
+- Click extension icon
+- Paste or type content
+- Click "Add Note"
+
+**Insert a note:**
+
+- Click in any text field
+- Type `/` (or `Shift+/`)
+- Type to filter
+- Press Enter to insert
+
+**Edit a note:**
+
+- Click on any note card
+- Modify title or content
+- Click green checkmark to save or yellow X to discard
+
+**Configure:**
+
+- Click settings icon
+- Toggle Shift+/ requirement
+- Add API key for AI naming
 
 ---
 
-## Get Started
+## Privacy
 
-BlockNotes v2 is **fast, bold, and production-ready**—with persistent notes, polished design, and improved usability.
+- All notes stored locally in your browser
+- No account or sign-up required
+- No data collection or tracking
+- Works offline after installation
 
-[**→ Get BlockNotes v2 on the Chrome Web Store**](#)
+---
+
+**Version:** 2.0  
+**Last Updated:** January 2025

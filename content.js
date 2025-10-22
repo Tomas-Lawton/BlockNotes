@@ -17,6 +17,7 @@ const state = {
   dragStartY: 0,
   popupStartX: 0,
   popupStartY: 0,
+  shiftPressed: false,
 };
 
 // ============================================
@@ -35,6 +36,11 @@ function init() {
   link.href =
     "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap";
   document.head.appendChild(link);
+
+  // Load Shift+/ setting once at startup
+  chrome.storage.local.get("settings", (data) => {
+    state.useShiftSlash = data.settings?.useShiftSlash !== false; // Default true
+  });
 
   // Setup listeners
   document.addEventListener("focus", handleFocus, true);
@@ -69,45 +75,6 @@ function isInput(el) {
 // ============================================
 // INPUT DETECTION
 // ============================================
-// function handleInput(event) {
-//   if (!isInput(event.target)) return;
-
-//   const value = getValue(event.target);
-//   const previousValue = state.previousValue;
-
-//   // Update previous value
-//   state.previousValue = value;
-
-//   // If popup is open, check if slash was deleted
-//   if (state.isPopupOpen) {
-//     if (!value.includes("/")) {
-//       closePopup();
-//     }
-//     return;
-//   }
-
-//   const lastChar = value[value.length - 1];
-//   const prevLastChar = previousValue[previousValue.length - 1];
-
-//   const justTypedSlash = lastChar === "/" && prevLastChar !== "/";
-
-//   if (justTypedSlash) {
-//     state.lastSlashDetected = true;
-//     state.lastFocusedElement = event.target;
-
-//     setTimeout(() => {
-//       chrome.storage.local.get(["settings", "notes"], (data) => {
-//         const settings = data.settings || {};
-//         state.notes = data.notes || {};
-
-//         if (settings.enableSlashCommand !== false) {
-//           showPopup();
-//         }
-//       });
-//     }, 50);
-//   }
-// }
-
 function handleInput(event) {
   if (!isInput(event.target)) return;
 
@@ -138,18 +105,39 @@ function handleInput(event) {
     lastChar === "/" && prevLastChar !== "/" && prevLastChar !== " ";
 
   if (justTypedSlash) {
+    // Check Shift requirement
+    if (state.useShiftSlash && !state.shiftPressed) {
+      return; // Don't open - shift wasn't held
+    }
+
     state.lastSlashDetected = true;
     state.lastFocusedElement = event.target;
 
     setTimeout(() => {
       chrome.storage.local.get(["settings", "notes"], (data) => {
-        const settings = data.settings || {};
         state.notes = data.notes || {};
-        if (settings.enableSlashCommand !== false) {
-          showPopup();
-        }
+        showPopup();
       });
     }, 50);
+  }
+}
+
+// Track Shift key state
+function handleGlobalKeydown(event) {
+  if (event.key === "Shift") {
+    state.shiftPressed = true;
+  }
+  if (state.isPopupOpen) {
+    handlePopupKeydown(event);
+  }
+}
+
+function handleGlobalKeyup(event) {
+  if (event.key === "Shift") {
+    state.shiftPressed = false;
+  }
+  if (event.key === "/") {
+    state.lastSlashDetected = true;
   }
 }
 
@@ -158,21 +146,6 @@ function getValue(el) {
   return el.tagName === "INPUT" || el.tagName === "TEXTAREA"
     ? el.value
     : el.textContent;
-}
-
-// ============================================
-// KEYBOARD HANDLING
-// ============================================
-function handleGlobalKeydown(event) {
-  if (state.isPopupOpen) {
-    handlePopupKeydown(event);
-  }
-}
-
-function handleGlobalKeyup(event) {
-  if (event.key === "/") {
-    state.lastSlashDetected = true;
-  }
 }
 
 // ============================================

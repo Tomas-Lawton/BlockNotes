@@ -255,12 +255,37 @@
         display: flex;
         flex-direction: column;
         padding: 16px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        background: #f0fdf4;
-        border-radius: 10px;
         animation: slideDown 0.3s ease;
         margin: 0;
-        border: 1px solid #dcfce7;
+      }
+
+      .oai-key-container input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        background: #ffffff;
+        outline: none;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 13px;
+      }
+
+      .close-button {
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        font-size: 24px;
+        line-height: 1;
+        color: #6b7280;
+        border: none;
+        background: transparent;
+      }
+
+      .close-button:hover {
+        color: #111827;
+        background: #f3f4f6;
+        border-radius: 6px;
       }
 
       @keyframes slideDown {
@@ -275,15 +300,7 @@
       }
 
       .oai-key-container input {
-        width: 100%;
-        padding: 10px 12px;
-        border: 1px solid #d1d5db;
-        border-radius: 8px;
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        background: #ffffff;
-        outline: none;
-        font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 13px;
       }
 
       .oai-key-container input:focus {
@@ -450,7 +467,7 @@
   </head>
   <body>
     <div>
-      <h1>Settings</h1>
+      <h1>BlockNotes Settings</h1>
       <div id="home">
         <img
           src="./public/uicons/uicons-round-medium-outline-home.svg"
@@ -478,9 +495,9 @@
       <div id="setting-slash" class="setting-card">
         <div class="setting-card-header">
           <div>
-            <h2>Quick Paste</h2>
+            <h2>Shift + / Command</h2>
             <p class="section-desc">
-              Press Ctrl + / to quickly paste your last note
+              Require Shift + / to open notes (instead of just /)
             </p>
           </div>
           <div class="checkbox-wrapper-5">
