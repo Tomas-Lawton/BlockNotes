@@ -12,8 +12,6 @@ const notes = document.getElementById("notes");
 const totalNotesElem = document.getElementById("total-notes");
 const totalCharsElem = document.getElementById("total-chars");
 
-let noteCounter = null;
-
 // Update stats function - ensures proper sync with storage
 function updateStats() {
   chrome.storage.local.get("notes", (data) => {
@@ -38,6 +36,11 @@ function deleteLocalNote(index) {
     delete savedNotes[index];
 
     chrome.storage.local.set({ notes: savedNotes }, () => {
+      if (chrome.runtime.lastError) {
+        console.error("Storage error:", chrome.runtime.lastError);
+        alert("Failed to save note. Chrome error.");
+        return;
+      }
       // Update after storage completes
       checkNoteMessage(savedNotes);
       updateStats();
@@ -62,20 +65,31 @@ function checkNoteMessage(savedNotes) {
 }
 
 function saveLocalNote(noteData) {
-  chrome.storage.local.get("notes", (data) => {
+  chrome.storage.local.get(["notes", "noteCounter"], (data) => {
     const savedNotes = data.notes || {};
-    const key = noteCounter.toString();
-    noteData.noteName = noteData.noteName || `Note ${noteCounter + 1}`;
+    const currentCounter = data.noteCounter || 0;
+
+    const key = currentCounter.toString();
+    noteData.noteName = noteData.noteName || `Note ${currentCounter + 1}`;
+    noteData.noteIndex = currentCounter;
     savedNotes[key] = noteData;
 
-    chrome.storage.local.set({ notes: savedNotes }, () => {
-      // Update after storage completes
-      checkNoteMessage(savedNotes);
-      updateStats();
-    });
-
-    noteCounter++;
-    chrome.storage.local.set({ noteCounter: noteCounter });
+    // Save BOTH notes and incremented counter in ONE operation
+    chrome.storage.local.set(
+      {
+        notes: savedNotes,
+        noteCounter: currentCounter + 1, // Increment and save together
+      },
+      () => {
+        if (chrome.runtime.lastError) {
+          console.error("Storage error:", chrome.runtime.lastError);
+          alert("Failed to save note. Chrome error.");
+          return;
+        }
+        checkNoteMessage(savedNotes);
+        updateStats();
+      }
+    );
   });
 }
 
@@ -85,13 +99,17 @@ function loadNotes() {
 
     if (!isInstalled) {
       chrome.storage.local.set({ isInstalled: true }, () => {
+        if (chrome.runtime.lastError) {
+          console.error("Storage error:", chrome.runtime.lastError);
+          alert("Failed to save note. Chrome error.");
+          return;
+        }
         console.log("You Installed Blocknotes. Cool!");
       });
     }
 
     chrome.storage.local.get(["notes", "noteCounter"], (data) => {
       const savedNotes = data.notes || {};
-      noteCounter = data.noteCounter || 0;
 
       console.log("Loaded Saved Notes: ", savedNotes);
 
@@ -100,7 +118,6 @@ function loadNotes() {
       );
 
       sortedNotes.forEach(([_, noteData], index) => {
-        noteData.displayIndex = index;
         createNote(noteData);
       });
 
@@ -115,17 +132,18 @@ function loadNotes() {
 function makeNote(noteText) {
   if (!noteText || noteText.trim() === "") return;
 
-  chrome.storage.local.get(["settings"], (data) => {
+  chrome.storage.local.get(["settings", "noteCounter"], (data) => {
     const AIKEY = data.settings?.key;
+    const currentCounter = data.noteCounter || 0;
     const date = getDate();
     const noteData = {
       noteText: noteText.trim(),
       date,
-      noteIndex: noteCounter,
+      noteIndex: currentCounter, // Add this
       displayIndex: 0,
     };
 
-    const newNoteDOM = createNote(noteData);
+    const newNoteDOM = createNote(noteData); // Now has noteIndex
     playPop();
     updateDragDropListeners();
 
@@ -140,7 +158,7 @@ function makeNote(noteText) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "X-goog-api-key": "AIzaSyCLFFAO338X-sG69QMpYHcLid0vTbchBDw",
+            "X-goog-api-key": AIKEY,
           },
           body: JSON.stringify({
             contents: [
@@ -390,6 +408,11 @@ function createNote({ noteText, date, noteIndex, displayIndex, noteName }) {
       };
 
       chrome.storage.local.set({ notes: savedNotes }, () => {
+        if (chrome.runtime.lastError) {
+          console.error("Storage error:", chrome.runtime.lastError);
+          alert("Failed to save note. Chrome error.");
+          return;
+        }
         updateStats();
       });
     });
@@ -438,8 +461,9 @@ function createNote({ noteText, date, noteIndex, displayIndex, noteName }) {
 
   // Copy button
   copyBtn.addEventListener("click", () => {
+    const currentText = noteTextDiv.textContent;
     navigator.clipboard
-      .writeText(originalText)
+      .writeText(currentText)
       .then(() => {
         const allCopyBtns = notes.querySelectorAll(".copy-btn");
         allCopyBtns.forEach((btn) => {
@@ -546,8 +570,12 @@ function clearAllNotes() {
     confirm("Are you sure you want to delete all notes? This cannot be undone.")
   ) {
     chrome.storage.local.set({ notes: {}, noteCounter: 0 }, () => {
+      if (chrome.runtime.lastError) {
+        console.error("Storage error:", chrome.runtime.lastError);
+        alert("Failed to save note. Chrome error.");
+        return;
+      }
       notes.innerHTML = "";
-      noteCounter = 0;
       updateStats();
       checkNoteMessage({});
       console.log("All notes cleared");
@@ -570,6 +598,11 @@ function updateDisplayIndices() {
     });
 
     chrome.storage.local.set({ notes: savedNotes }, () => {
+      if (chrome.runtime.lastError) {
+        console.error("Storage error:", chrome.runtime.lastError);
+        alert("Failed to save note. Chrome error.");
+        return;
+      }
       console.log("Display indices updated");
     });
   });
