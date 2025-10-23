@@ -17,7 +17,8 @@ const state = {
   dragStartY: 0,
   popupStartX: 0,
   popupStartY: 0,
-  shiftPressed: false,
+  ctrlPressed: false,
+  useShiftSlash: false,
 };
 
 // ============================================
@@ -39,7 +40,9 @@ function init() {
 
   // Load Shift+/ setting once at startup
   chrome.storage.local.get("settings", (data) => {
-    state.useShiftSlash = data.settings?.useShiftSlash === true; // Default unchecked
+    const settings = data.settings || {};
+    useShiftSlash = settings.useShiftSlash ?? false;
+    console.log("Shift slash setting loaded:", useShiftSlash);
   });
 
   // Setup listeners
@@ -89,7 +92,6 @@ function handleInput(event) {
   if (state.isPopupOpen) {
     const lastSlashIndex = value.lastIndexOf("/");
     const lastSpaceIndex = value.lastIndexOf(" ");
-    // close only if space immediately follows last slash
     if (lastSlashIndex >= 0 && lastSpaceIndex === lastSlashIndex + 1) {
       closePopup();
       return;
@@ -105,9 +107,9 @@ function handleInput(event) {
     lastChar === "/" && prevLastChar !== "/" && prevLastChar !== " ";
 
   if (justTypedSlash) {
-    // Check Shift requirement
-    if (state.useShiftSlash && !state.shiftPressed) {
-      return; // Don't open - shift wasn't held
+    // Check Ctrl/Meta requirement when useShiftSlash is enabled
+    if (state.useShiftSlash && !state.ctrlPressed) {
+      return; // Don't open - Ctrl/Meta wasn't held
     }
 
     state.lastSlashDetected = true;
@@ -124,8 +126,31 @@ function handleInput(event) {
 
 // Track Shift key state
 function handleGlobalKeydown(event) {
-  if (event.key === "Shift") {
-    state.shiftPressed = true;
+  // Handle Ctrl/Meta + / keyboard shortcut
+  if (event.key === "/" && (event.ctrlKey || event.metaKey)) {
+    if (state.useShiftSlash) {
+      event.preventDefault();
+
+      // Find focused input or use last focused
+      const target = document.activeElement;
+      if (isInput(target)) {
+        state.lastFocusedElement = target;
+
+        if (state.isPopupOpen) {
+          closePopup();
+        } else {
+          chrome.storage.local.get(["settings", "notes"], (data) => {
+            state.notes = data.notes || {};
+            showPopup();
+          });
+        }
+      }
+    }
+    return;
+  }
+
+  if (event.key === "Control" || event.key === "Meta") {
+    state.ctrlPressed = true;
   }
   if (state.isPopupOpen) {
     handlePopupKeydown(event);
@@ -133,8 +158,8 @@ function handleGlobalKeydown(event) {
 }
 
 function handleGlobalKeyup(event) {
-  if (event.key === "Shift") {
-    state.shiftPressed = false;
+  if (event.key === "Control" || event.key === "Meta") {
+    state.ctrlPressed = false;
   }
   if (event.key === "/") {
     state.lastSlashDetected = true;
@@ -656,6 +681,12 @@ function pasteNote(text) {
 }
 
 function handleMessage(request) {
+  if (request.action === "updateShiftSlashSetting") {
+    state.useShiftSlash = request.useShiftSlash;
+    console.log("Updated shift slash setting:", state.useShiftSlash);
+    return;
+  }
+
   if (request.action === "pasteValue") {
     pasteNote(request.value);
   }

@@ -620,7 +620,7 @@
 
       /* Note Message */
       #note-message {
-        margin-top: 1rem;
+        margin: 1rem 0;
         padding: 2rem;
         background: linear-gradient(
           135deg,
@@ -649,66 +649,71 @@
         justify-content: space-between;
         align-items: center;
         gap: 2rem;
-        position: relative;
         padding-top: 1rem;
         border-top: 1px solid rgba(226, 232, 240, 0.6);
       }
 
-      footer h2 a {
-        font-weight: 600;
+      footer h2 {
+        /* box-shadow: var(--shadow); */
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        font-size: 1rem;
-        color: var(--text-secondary);
+      }
+
+      footer h2 a {
         display: inline-flex;
         align-items: center;
         gap: 0.75rem;
         padding: 1rem 1.75rem;
-        border-radius: 14px;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-secondary);
         background: rgba(99, 102, 241, 0.1);
         border: 1px solid rgba(99, 102, 241, 0.2);
+        border-radius: 14px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       footer h2 a:hover {
         color: var(--primary);
         background: rgba(99, 102, 241, 0.15);
         transform: translateY(-2px);
-        box-shadow: var(--shadow);
+        box-shadow: var(--shadow-lg);
+        opacity: 1;
       }
 
       #coffee {
-        height: 55px !important;
-        width: 200px !important;
+        height: 55px;
+        width: 200px;
         border-radius: 14px;
         border: none;
         overflow: hidden;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: var(--shadow);
+        /* box-shadow: var(--shadow); */
         opacity: 0.95;
       }
 
       #coffee:hover {
-        box-shadow: var(--shadow-lg);
         transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
         opacity: 1;
       }
 
       /* Background Elements */
       #orb {
-        width: 100vw;
-        height: 100vh;
+        width: 150vw;
+        height: 150vh;
         object-fit: cover;
         position: fixed;
-        top: 0;
-        left: 0;
+        top: 50px;
+        left: 50px;
         z-index: -1;
-        opacity: 0.1;
+        opacity: .2;
       }
 
       .background-svg-animate {
         position: fixed;
         z-index: 0;
         pointer-events: none;
-        opacity: 0.3;
+        /* opacity: 0.3; */
         transition: all 0.5s ease;
       }
 
@@ -918,7 +923,6 @@
             👨‍💻 Made by Tommy
           </a>
         </h2>
-
         <a href="https://www.buymeacoffee.com/tomaslawton" target="_blank">
           <img
             src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"

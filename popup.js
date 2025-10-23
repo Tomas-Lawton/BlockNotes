@@ -7,10 +7,9 @@ document.addEventListener("DOMContentLoaded", function () {
   const setKeyButton = document.getElementById("setting-naming");
   const aiCard = document.getElementById("auto-name-setting");
 
-  // Load settings
   chrome.storage.local.get("settings", (data) => {
     const settings = data.settings || {};
-    slashCheckbox.checked = settings.useShiftSlash === true; // Default unchecked
+    slashCheckbox.checked = settings.useShiftSlash ?? false;
   });
 
   // Toggle Shift+/ mode
@@ -21,7 +20,19 @@ document.addEventListener("DOMContentLoaded", function () {
         ...(data.settings || {}),
         useShiftSlash: isEnabled,
       };
-      chrome.storage.local.set({ settings: updatedSettings });
+      chrome.storage.local.set({ settings: updatedSettings }, () => {
+        // Notify content scripts about the change
+        chrome.tabs.query({}, (tabs) => {
+          tabs.forEach((tab) => {
+            chrome.tabs
+              .sendMessage(tab.id, {
+                action: "updateShiftSlashSetting",
+                useShiftSlash: isEnabled,
+              })
+              .catch(() => {}); // Ignore errors for tabs without content script
+          });
+        });
+      });
       console.log("Shift+/ mode:", isEnabled ? "Enabled" : "Disabled");
     });
   });
