@@ -5,6 +5,7 @@ import { getDate } from "./util.js";
 const input = document.getElementById("note-input");
 const pasteButton = document.getElementById("instant-paste");
 const noteMessage = document.getElementById("note-message");
+const noteSectionTitle = document.getElementById("note-section-title");
 const notes = document.getElementById("notes");
 
 // Stats elements
@@ -51,8 +52,12 @@ function deleteLocalNote(index) {
 function checkNoteMessage(savedNotes) {
   if (Object.keys(savedNotes).length > 0) {
     noteMessage.style.display = "none";
+    noteSectionTitle.style.display = "block";
+    notes.style.display = "flex";
   } else {
     noteMessage.style.display = "block";
+    noteSectionTitle.style.display = "none";
+    notes.style.display = "none";
   }
 }
 
@@ -172,6 +177,10 @@ function makeNote(noteText) {
     }
   });
 }
+
+document.getElementById("toggle-input-zone").addEventListener("click", () => {
+  document.getElementById("input-zone").classList.toggle("collapsed");
+});
 
 pasteButton.addEventListener("click", async () => {
   try {
@@ -581,8 +590,8 @@ function loadShapePositions() {
       const rotation = Math.floor(Math.random() * 4) * 90;
       shape.style.transform = `rotate(${rotation}deg)`;
 
-      let rangeX = window.innerWidth - width - 100;
-      let rangeY = window.innerHeight - width - 200;
+      let rangeX = window.innerWidth - width;
+      let rangeY = window.innerHeight - width;
 
       let x = Math.floor(Math.random() * rangeX) + 50;
       let y = Math.floor(Math.random() * rangeY) + 150;

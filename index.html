@@ -5,10 +5,6 @@
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1" name="viewport" />
     <link rel="icon" type="image/x-icon" href="/public/favicon.ico" />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Lexend+Mega:wght@100..900&family=Reenie+Beanie&display=swap"
-    />
     <style>
       :root {
         --primary: #6366f1;
@@ -21,7 +17,7 @@
         --text-secondary: #64748b;
         --border: #e2e8f0;
         --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-        --shadow-lg: 0 20px 40px -10px rgba(0, 0, 0, 0.15);
+        --shadow-lg: 5px 5px 0px 0px rgb(0 0 0);
       }
 
       * {
@@ -30,12 +26,27 @@
         box-sizing: border-box;
       }
 
+      input,
+      textarea {
+        border: none;
+        outline: none;
+        background: #f6f6f6;
+        padding: 0;
+        margin: 0;
+        box-shadow: none;
+        appearance: none;
+        resize: none;
+        border-radius: 8px;
+        padding: 8px 10px;
+      }
+
       body {
         font-family: "Lexend Mega", sans-serif;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        min-height: 100vh;
+        height: 100vh;
         overscroll-behavior: none;
         position: relative;
+        display: flex;
       }
 
       a {
@@ -49,11 +60,6 @@
       }
 
       h1,
-      h2 {
-        font-weight: 600;
-        letter-spacing: -0.5px;
-      }
-
       .line-break {
         font-family: "Lexend Mega", sans-serif;
         font-size: 3rem;
@@ -77,20 +83,32 @@
         border-radius: 2px;
       }
 
+      .header {
+        width: 100%;
+        background: #000;
+        color: #fff;
+        padding: 1rem 2rem;
+        font-family: "Lexend Mega", sans-serif;
+        font-weight: 900;
+        font-size: 1.4rem;
+        border: 4px solid #fff;
+        box-shadow: 6px 6px 0 #1e293b;
+        margin-bottom: 2rem;
+      }
+
       /* Main Section */
       section {
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(20px);
         border-radius: 24px;
         flex: 1;
-        margin: 4rem;
-        padding: 3rem;
+        padding: 2rem;
         border: 1px solid rgba(255, 255, 255, 0.3);
         box-shadow: var(--shadow-lg);
         position: relative;
         display: flex;
         flex-direction: column;
-        min-height: calc(100vh - 200px);
+        margin: 4rem;
       }
 
       /* Decorative Elements */
@@ -108,7 +126,7 @@
       }
 
       #bang-1 {
-        right: -30px;
+        right: -40px;
         top: -30px;
         width: 120px;
         animation: float 6s ease-in-out infinite;
@@ -116,21 +134,21 @@
 
       #bang-0 {
         left: -30px;
-        top: 20%;
+        top: -20px;
         width: 100px;
         animation: float 7s ease-in-out infinite 1s;
       }
 
       #bang-4 {
-        right: 10%;
-        bottom: -20px;
+        right: -50px;
+        bottom: -10px;
         width: 90px;
         animation: float 5.5s ease-in-out infinite 0.5s;
       }
 
       #bang-2 {
-        left: -15px;
-        bottom: 20%;
+        left: -45px;
+        top: 600px;
         width: 80px;
         animation: float 6.5s ease-in-out infinite 1.5s;
       }
@@ -145,21 +163,45 @@
         }
       }
 
+      #input-zone.collapsed {
+        height: 95px;
+        overflow: hidden;
+      }
+      #input-zone.collapsed .input-header p,
+      #input-zone.collapsed #inputs,
+      #input-zone.collapsed .quick-actions {
+        display: none;
+      }
+
+      #toggle-input-zone {
+        cursor: pointer;
+        border: none;
+        background: var(--primary);
+      }
+
+      #toggle-input-zone span {
+        color: white;
+        font-weight: 700;
+      }
+
       /* Input Zone */
       #input-zone {
         border: 2px solid rgba(99, 102, 241, 0.2);
-        padding: 2.5rem;
+        padding: 2rem;
         border-radius: 20px;
         background: linear-gradient(
           135deg,
           rgba(99, 102, 241, 0.05) 0%,
           rgba(255, 255, 255, 0.8) 100%
         );
-        margin-bottom: 2rem;
+        margin-bottom: 1rem;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
-        box-shadow: var(--shadow);
+        box-shadow: var(--shadow-lg);
         backdrop-filter: blur(10px);
+        gap: 1rem;
+        display: flex;
+        flex-direction: column;
       }
 
       #input-zone:hover {
@@ -191,16 +233,20 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 1.5rem;
         gap: 1rem;
       }
 
-      .input-title {
-        font-size: 1.1rem;
+      .input-title h2 {
+        font-size: 1.4rem;
         font-weight: 700;
-        text-transform: uppercase;
         letter-spacing: 1px;
         color: var(--primary);
+      }
+
+      #your-notes {
+        color: var(--text-secondary);
+        margin: 1rem;
+        font-size: initial;
       }
 
       .stats-inline {
@@ -332,13 +378,13 @@
           var(--primary-dark) 0%,
           #4338ca 100%
         );
-        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+        box-shadow: var(--shadow-lg);
         transform: translateY(-2px);
       }
 
       #instant-paste:active {
         transform: translateY(0);
-        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+        box-shadow: var(--shadow-lg);
       }
 
       .icon-circle {
@@ -361,12 +407,11 @@
       .quick-actions {
         display: flex;
         gap: 1rem;
-        margin-bottom: 2rem;
         flex-wrap: wrap;
       }
 
       .quick-action-btn {
-        padding: 0.75rem 1.5rem;
+        padding: 0.5rem;
         background: rgba(99, 102, 241, 0.08);
         border: 2px solid rgba(99, 102, 241, 0.2);
         border-radius: 12px;
@@ -389,14 +434,17 @@
       .container {
         display: flex;
         flex-wrap: wrap;
-        gap: 1.5rem;
+        gap: 1rem;
         justify-content: flex-start;
-        margin-bottom: 2rem;
+        margin-bottom: 1rem;
+        overflow-y: auto;
+        flex: 1;
       }
 
       .note {
-        flex: 0 1 calc(33.333% - 1rem);
+        flex: 0 1 calc(50% - 1.5rem);
         min-width: 280px;
+        min-height: 480px;
         background: white;
         border-radius: 16px;
         border: 2px solid var(--border);
@@ -405,12 +453,13 @@
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         display: flex;
         flex-direction: column;
+        margin: 5px;
       }
 
       .note:hover {
         box-shadow: var(--shadow-lg);
         transform: translateY(-4px);
-        border-color: rgba(99, 102, 241, 0.3);
+        border-color: var(--text-primary);
       }
 
       .note-content {
@@ -445,6 +494,8 @@
         word-wrap: break-word;
         white-space: pre-wrap;
         flex: 1;
+        border-radius: 8px;
+        padding: 8px 10px;
       }
 
       .note-actions {
@@ -571,7 +622,7 @@
 
       /* Note Message */
       #note-message {
-        margin-top: 2rem;
+        margin-top: 1rem;
         padding: 2rem;
         background: linear-gradient(
           135deg,
@@ -581,6 +632,7 @@
         border-radius: 16px;
         border: 1px solid rgba(226, 232, 240, 0.6);
         backdrop-filter: blur(10px);
+        flex: 1;
       }
 
       #note-message p {
@@ -599,8 +651,7 @@
         align-items: center;
         gap: 2rem;
         position: relative;
-        margin-top: auto;
-        padding-top: 2.5rem;
+        padding-top: 1rem;
         border-top: 1px solid rgba(226, 232, 240, 0.6);
       }
 
@@ -666,60 +717,6 @@
       .shape-4,
       .shape-5 {
         display: none;
-      }
-
-      /* FIXED EDITING STYLES - Added to fix layout issues during editing */
-      .note.editing {
-        border-color: var(--primary);
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1), var(--shadow-lg);
-      }
-
-      .note.editing .note-title-input,
-      .note.editing .note-text-input {
-        width: 100%;
-        border: 2px solid var(--border);
-        border-radius: 8px;
-        padding: 0.75rem;
-        font-family: "Lexend Mega", sans-serif;
-        background: white;
-        resize: none;
-      }
-
-      .note.editing .note-title-input {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-bottom: 1rem;
-      }
-
-      .note.editing .note-text-input {
-        font-size: 0.95rem;
-        color: var(--text-secondary);
-        line-height: 1.6;
-        min-height: 120px;
-        flex: 1;
-      }
-
-      .note.editing .note-title-input:focus,
-      .note.editing .note-text-input:focus {
-        outline: none;
-        border-color: var(--primary);
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-      }
-
-      .note.editing .note-title,
-      .note.editing .note-text {
-        display: none;
-      }
-
-      .note.editing .edit,
-      .note.editing .delete-btn {
-        display: none;
-      }
-
-      .note.editing .accept,
-      .note.editing .discard {
-        display: flex;
       }
 
       /* Responsive Design */
@@ -839,7 +836,14 @@
 
       <div id="input-zone">
         <div class="input-header">
-          <div class="input-title">📝 Quick Note Creator</div>
+          <div class="input-title">
+            <h2>📝 BlockNotes</h2>
+            <p>
+              Type "/" to start making a note from clipboard or paste
+              immediately. Organize your thoughts with beautiful, draggable
+              notes.
+            </p>
+          </div>
           <div class="stats-inline">
             <div class="stat-inline">
               <span>Notes:</span>
@@ -849,6 +853,10 @@
               <span>Chars:</span>
               <span class="stat-value" id="total-chars">0</span>
             </div>
+            <button id="toggle-input-zone" class="stat-inline">
+              <span class="collapse-icon">▼</span>
+              <span>Hide</span>
+            </button>
           </div>
         </div>
         <div id="inputs">
@@ -870,22 +878,22 @@
             <span>Paste</span>
           </button>
         </div>
-        <p>
-          Type "/" to start making a note from clipboard or paste immediately.
-          Organize your thoughts with beautiful, draggable notes.
-        </p>
+
+        <div class="quick-actions">
+          <button class="quick-action-btn" data-action="sort-date">
+            📅 Sort by Date
+          </button>
+          <button class="quick-action-btn" data-action="sort-title">
+            🔤 Sort by Title
+          </button>
+          <button class="quick-action-btn" data-action="clear-all">
+            🗑️ Clear All
+          </button>
+        </div>
       </div>
 
-      <div class="quick-actions">
-        <button class="quick-action-btn" data-action="sort-date">
-          📅 Sort by Date
-        </button>
-        <button class="quick-action-btn" data-action="sort-title">
-          🔤 Sort by Title
-        </button>
-        <button class="quick-action-btn" data-action="clear-all">
-          🗑️ Clear All
-        </button>
+      <div id="note-section-title" class="input-title">
+        <h2 id="your-notes">Your Notes</h2>
       </div>
 
       <div id="notes" class="container"></div>
