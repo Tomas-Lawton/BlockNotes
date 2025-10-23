@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Load settings
   chrome.storage.local.get("settings", (data) => {
     const settings = data.settings || {};
-    slashCheckbox.checked = settings.useShiftSlash !== false; // Default true
+    slashCheckbox.checked = settings.useShiftSlash === true; // Default unchecked
   });
 
   // Toggle Shift+/ mode

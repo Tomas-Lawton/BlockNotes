@@ -133,12 +133,14 @@ function makeNote(noteText) {
       saveLocalNote(noteData);
     } else {
       // Use Gemini for note naming
+
       fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${AIKEY}`,
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "X-goog-api-key": "AIzaSyCLFFAO338X-sG69QMpYHcLid0vTbchBDw",
           },
           body: JSON.stringify({
             contents: [

@@ -39,7 +39,7 @@ function init() {
 
   // Load Shift+/ setting once at startup
   chrome.storage.local.get("settings", (data) => {
-    state.useShiftSlash = data.settings?.useShiftSlash !== false; // Default true
+    state.useShiftSlash = data.settings?.useShiftSlash === true; // Default unchecked
   });
 
   // Setup listeners
