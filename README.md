@@ -1,103 +1,53 @@
-# BlockNotes v2
+# BlockNotes v2 — Instant. Bold. Powerful.
 
-A Chrome extension for saving and inserting text snippets on any website. Type `/` to access your notes instantly.
+A lightning-fast note toolkit built for people who don’t waste time.  
+Capture ideas instantly and insert them anywhere by typing `/`.
+
+No fluff. Just pure productivity.
 
 ---
 
 ## What's New in v2
 
-- **Improved search** – Find notes by numbers, phrases, and special characters
-- **Better popup positioning** – Appears near your cursor, adjusts automatically when space is limited
-- **Cleaner design** – Minimal interface with blue accents and subtle borders
-- **Persistent notes** – All notes saved locally, survive browser restarts
-- **Shift+/ option** – Choose whether slash command requires Shift key
-- **Smart closing** – Type space after `/` to close popup instantly
-- **Edit mode** – Inline editing with accept/discard buttons
-- **Visual drag handles** – Clear indicators for reordering notes
+- Smarter search (phrases, numbers, special characters)
+- Popup appears near cursor + auto-adjusts position
+- Cleaner neo-brutalist UI with bold accents
+- Notes persist locally (browser restarts safe)
+- Optional Shift+/ trigger
+- Smart close when typing space after `/`
+- Inline edit mode with save/discard
+- Visual drag handles for reordering
 
 ---
 
-## Key Features
+## Core Features
 
-### Instant Text Insertion
-
-Type `/` on any webpage to open your notes. Start typing to filter, press Enter to insert. Works on Gmail, Google Docs, LinkedIn, Slack, and most text inputs.
-
-### Smart Search
-
-Search across note titles and content. Supports multi-word phrases, numbers, and special characters. Results update as you type.
-
-### Note Management
-
-- **Create** – Paste or type content, add optional titles
-- **Edit** – Click any note to enter inline edit mode with save/discard options
-- **Reorder** – Drag and drop using visual handles to organize
-- **Delete** – Remove with one click
-- **Copy** – Quick copy to clipboard without inserting
-- **Date tracking** – Each note shows creation date
-
-### AI Naming (Optional)
-
-Add a free Gemini API key to auto-generate descriptive titles based on note content.
-
-### Keyboard Navigation
-
-- Arrow keys to navigate results
-- Enter to insert selected note
-- Escape to close popup
-- First result auto-selected for quick insertion
-
-### Two-Column Grid Layout
-
-Notes display in a responsive grid that adapts to your screen size, maximizing space and readability.
+- **Instant Notes** — Open, type, save. Zero friction.
+- **Slash Command** — `/` → type → Enter. Insert anywhere.
+- **Fast Search** — Real-time filtering on titles + content.
+- **Full Management** — Create, edit, reorder, delete, copy.
+- **Keyboard Friendly** — Arrows to navigate, Enter to insert, Esc to close.
+- **AI Naming (Optional)** — Use a free Gemini key for auto titles.
+- **Responsive Grid** — Two-column layout maximizes visibility.
+- **Bold Design** — Focus-first, neo-brutalist interface.
 
 ---
 
-## Installation
+## Why BlockNotes
 
-1. Install from Chrome Web Store
-2. Pin to toolbar for easy access
-3. (Optional) Add Gemini API key in settings
-
----
-
-## Quick Start
-
-**Create a note:**
-
-- Click extension icon
-- Paste or type content
-- Click "Add Note"
-
-**Insert a note:**
-
-- Click in any text field
-- Type `/` (or `Shift+/`)
-- Type to filter
-- Press Enter to insert
-
-**Edit a note:**
-
-- Click on any note card
-- Modify title or content
-- Click green checkmark to save or yellow X to discard
-
-**Configure:**
-
-- Click settings icon
-- Toggle Shift+/ requirement
-- Add API key for AI naming
+1. **Power at Your Fingertips** — Capture + insert ideas in seconds.
+2. **Bold, Minimal UI** — Nothing extra. Everything useful.
+3. **Local Privacy** — No accounts, no tracking, works offline.
+4. **Flexible Workflow** — Shortcuts, AI titles, instant reordering.
 
 ---
 
 ## Privacy
 
-- All notes stored locally in your browser
-- No account or sign-up required
-- No data collection or tracking
-- Works offline after installation
+All notes stay in your browser.  
+No syncing, no servers, no data collection.
 
 ---
 
 **Version:** 2.0  
-**Last Updated:** January 2025
+**Updated:** Jan 2025
