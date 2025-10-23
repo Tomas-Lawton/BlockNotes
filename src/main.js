@@ -8,6 +8,10 @@ const noteMessage = document.getElementById("note-message");
 const noteSectionTitle = document.getElementById("note-section-title");
 const notes = document.getElementById("notes");
 
+const toggleBtn = document.getElementById("toggle-input-zone");
+const carrot = document.getElementById("carrot");
+const zone = document.getElementById("input-zone");
+
 // Stats elements
 const totalNotesElem = document.getElementById("total-notes");
 const totalCharsElem = document.getElementById("total-chars");
@@ -198,8 +202,9 @@ function makeNote(noteText) {
   });
 }
 
-document.getElementById("toggle-input-zone").addEventListener("click", () => {
-  document.getElementById("input-zone").classList.toggle("collapsed");
+toggleBtn.addEventListener("click", () => {
+  const collapsed = zone.classList.toggle("collapsed");
+  carrot.textContent = collapsed ? "▲" : "▼";
 });
 
 pasteButton.addEventListener("click", async () => {

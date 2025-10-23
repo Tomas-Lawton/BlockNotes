@@ -18,6 +18,7 @@
         --border: #e2e8f0;
         --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
         --shadow-lg: 5px 5px 0px 0px rgb(0 0 0);
+        --shadow-primary: 5px 5px 0px 0px #6366f1;
       }
 
       * {
@@ -103,7 +104,7 @@
         border-radius: 24px;
         flex: 1;
         padding: 2rem;
-        border: 1px solid rgba(255, 255, 255, 0.3);
+        border: 4px solid black;
         box-shadow: var(--shadow-lg);
         position: relative;
         display: flex;
@@ -176,17 +177,15 @@
       #toggle-input-zone {
         cursor: pointer;
         border: none;
-        background: var(--primary);
       }
 
       #toggle-input-zone span {
-        color: white;
         font-weight: 700;
       }
 
       /* Input Zone */
       #input-zone {
-        border: 2px solid rgba(99, 102, 241, 0.2);
+        border: 4px solid rgba(99, 102, 241, 0.2);
         padding: 2rem;
         border-radius: 20px;
         background: linear-gradient(
@@ -197,7 +196,7 @@
         margin-bottom: 1rem;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
-        box-shadow: var(--shadow-lg);
+        /* box-shadow: var(--shadow-lg); */
         backdrop-filter: blur(10px);
         gap: 1rem;
         display: flex;
@@ -205,8 +204,8 @@
       }
 
       #input-zone:hover {
-        box-shadow: var(--shadow-lg);
-        border-color: rgba(99, 102, 241, 0.4);
+        box-shadow: var(--shadow-primary);
+        border-color: var(--primary);
         transform: translateY(-2px);
       }
 
@@ -706,7 +705,7 @@
         top: 50px;
         left: 50px;
         z-index: -1;
-        opacity: .2;
+        opacity: 0.2;
       }
 
       .background-svg-animate {
@@ -858,7 +857,7 @@
               <span class="stat-value" id="total-chars">0</span>
             </div>
             <button id="toggle-input-zone" class="stat-inline">
-              <span class="collapse-icon">▼</span>
+              <span class="collapse-icon" id="carrot">▼</span>
               <span>Hide</span>
             </button>
           </div>
