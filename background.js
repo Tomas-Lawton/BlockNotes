@@ -83,7 +83,7 @@ Would you be open to a brief chat?`,
       },
       // Getting Started - LAST so appears FIRST
       5: {
-        noteText: `Type "/" in any text field to insert notes. Select text on any page to save it as a new note.`,
+        noteText: `Type "/" in any text field to search for a note and insert anywhere. Or, highlight text and click Note button to save it to your notes.`,
         noteIndex: 5,
         date: date,
         displayIndex: 5,

@@ -2071,6 +2071,11 @@ function initNoteSizeSlider() {
   slider.addEventListener("input", (e) => {
     const size = parseInt(e.target.value, 10);
     applyNoteSize(size);
+    // Sync settings page slider if it exists
+    const pageSlider = document.getElementById("page-note-size");
+    const pageValue = document.getElementById("page-note-size-value");
+    if (pageSlider) pageSlider.value = size;
+    if (pageValue) pageValue.textContent = size + "px";
   });
 
   // Save on change (when user releases slider)
@@ -2532,9 +2537,17 @@ function initSettingsPage() {
   const noteSizeSlider = document.getElementById("page-note-size");
   const noteSizeValue = document.getElementById("page-note-size-value");
 
-  // Update note size value display
+  // Update note size value display and apply in real-time
   noteSizeSlider?.addEventListener("input", () => {
     if (noteSizeValue) noteSizeValue.textContent = noteSizeSlider.value + "px";
+    // Apply size immediately to notes container
+    const notesContainer = document.getElementById("notes");
+    if (notesContainer) {
+      notesContainer.style.setProperty("--note-size", noteSizeSlider.value + "px");
+    }
+    // Also sync the toolbar slider
+    const toolbarSlider = document.getElementById("note-size-slider");
+    if (toolbarSlider) toolbarSlider.value = noteSizeSlider.value;
   });
 
   // Save settings
@@ -2560,8 +2573,14 @@ function initSettingsPage() {
       settings.autonameSelection = autonameSelectionCheckbox?.checked || false;
       settings.noteSize = parseInt(noteSizeSlider?.value || 320);
 
-      // Apply note size immediately
-      document.documentElement.style.setProperty("--note-size", settings.noteSize + "px");
+      // Apply note size immediately to notes container
+      const notesContainer = document.getElementById("notes");
+      if (notesContainer) {
+        notesContainer.style.setProperty("--note-size", settings.noteSize + "px");
+      }
+      // Sync toolbar slider
+      const toolbarSlider = document.getElementById("note-size-slider");
+      if (toolbarSlider) toolbarSlider.value = settings.noteSize;
 
       chrome.storage.local.set({ settings }, () => {
         // Show save feedback
