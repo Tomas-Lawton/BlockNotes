@@ -36,7 +36,7 @@ No fluff. No friction. Just flow.
 - **Mobile Menu** — Slide-out navigation on small screens
 - **Adjustable Grid** — Resize snippets with the size slider
 - **Keyboard Friendly** — Navigate with arrows, Enter to insert, Esc to close
-- **First-Run Walkthrough** — Guided introduction for new users
+- **First-Run Walkthrough** — Guided introduction for new users (click background to skip)
 
 ---
 
@@ -87,11 +87,6 @@ No fluff. No friction. Just flow.
 - Results are sorted by relevance (title matches appear first)
 - Frequently used notes are prioritized
 - Recently used notes appear higher in results
-
-**Trigger Modes:**
-- **Slash mode (default):** Type `/` to open the popup
-- **Ctrl+Slash mode:** Press `Ctrl+/` instead (useful if `/` conflicts with other tools)
-- Change the trigger mode in Settings
 
 ---
 
@@ -149,8 +144,9 @@ Transform your note's tone with one click:
 5. Accept or discard the changes
 
 **Auto-Naming:**
-- When saving text selections from webpages, AI automatically generates a descriptive title
-- Enable/disable in Settings under "Auto-name Selections"
+- **New Notes:** AI automatically generates descriptive titles when creating notes from the dashboard
+- **Saved Selections:** AI automatically names text selections saved from webpages
+- Both options are enabled by default and can be toggled independently in Settings
 
 **Template Generation:**
 1. Click the **AI Create** button (wand icon) in the note creation area
@@ -227,12 +223,14 @@ BlockNotes includes helpful starter notes:
 
 Access settings from the sidebar:
 - **AI Configuration** — Choose provider (OpenAI, Anthropic, Gemini, Groq), model, and API key
-- **Require Ctrl+/** — Toggle between `/` or `Ctrl+/` to open the popup
 - **Auto-fill Placeholders** — Fill placeholders from page context
 - **Play Sounds** — Toggle audio feedback
-- **Auto-name Saved Selections** — Automatically name text selections using AI (requires API key)
+- **Auto-name New Notes** — Automatically name notes created from the dashboard using AI
+- **Auto-name Saved Selections** — Automatically name text selections using AI
 - **Note Size** — Adjust the grid size (240px - 600px)
 - **Export/Import** — Backup and restore your notes as JSON
+
+**Note:** The Save Settings button turns amber when you have unsaved changes.
 
 ---
 
@@ -240,7 +238,8 @@ Access settings from the sidebar:
 
 | Action | Shortcut |
 |--------|----------|
-| Open notes popup | `/` or `Ctrl+/` |
+| Open notes popup | `/` |
+| Force open popup | `Ctrl+Shift+/` |
 | Navigate notes | Arrow keys |
 | Insert note | Enter |
 | Close popup | Escape |

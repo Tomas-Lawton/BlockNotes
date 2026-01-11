@@ -95,7 +95,7 @@ Would you be open to a brief chat?`,
     },
   });
   chrome.storage.local.set({ noteCounter: 6 });
-  chrome.storage.local.set({ settings: { useShiftSlash: false, autoFillPlaceholders: false, autonameSelection: false, key: '' } });
+  chrome.storage.local.set({ settings: { autoFillPlaceholders: false, autonameSelection: true, autonameNewNotes: true, key: '' } });
   chrome.storage.local.set({ isInstalled: false });
   chrome.storage.local.set({ walkthroughComplete: false });
   console.log("Extension installed successfully.");

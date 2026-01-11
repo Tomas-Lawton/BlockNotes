@@ -2375,14 +2375,14 @@
       }
 
       .settings-btn.secondary {
-        background: var(--surface-elevated);
+        background: #3f3f46;
         color: var(--text-secondary);
         border: 2px solid var(--border);
         box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.2);
       }
 
       .settings-btn.secondary:hover {
-        background: var(--surface);
+        background: #52525b;
         color: var(--text-primary);
       }
 
@@ -2892,6 +2892,7 @@
         z-index: 1;
         max-width: 600px;
         margin: 0 auto;
+        z-index: 2;
       }
 
       .settings-page-header {
@@ -3343,13 +3344,6 @@
 
               <div class="settings-field checkbox-field">
                 <label>
-                  <input type="checkbox" id="page-ctrl-slash" />
-                  <span>Require Ctrl+/ to open notes (instead of just /)</span>
-                </label>
-              </div>
-
-              <div class="settings-field checkbox-field">
-                <label>
                   <input type="checkbox" id="page-autofill" />
                   <span>Auto-fill placeholders from page context</span>
                 </label>
@@ -3364,7 +3358,14 @@
 
               <div class="settings-field checkbox-field">
                 <label>
-                  <input type="checkbox" id="page-autoname-selection" />
+                  <input type="checkbox" id="page-autoname-newnotes" checked />
+                  <span>Auto-name new notes (requires AI key)</span>
+                </label>
+              </div>
+
+              <div class="settings-field checkbox-field">
+                <label>
+                  <input type="checkbox" id="page-autoname-selection" checked />
                   <span>Auto-name saved selections (requires AI key)</span>
                 </label>
               </div>
@@ -3566,7 +3567,7 @@
           <button id="close-info-modal" class="modal-close">&times;</button>
         </div>
         <div class="modal-body">
-          <div class="info-version">v3.0</div>
+          <div class="info-version">v3.2</div>
 
           <p class="info-description">
             Fast, colorful notes with "/" quick-insert anywhere.

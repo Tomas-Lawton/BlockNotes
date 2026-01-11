@@ -17,8 +17,6 @@ const state = {
   dragStartY: 0,
   popupStartX: 0,
   popupStartY: 0,
-  ctrlPressed: false,
-  useShiftSlash: false,
   quickSaveButton: null,
   selectedText: "",
   isSaving: false, // Prevent button recreation during save
@@ -155,12 +153,6 @@ function init() {
     "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap";
   document.head.appendChild(link);
 
-  // Load Shift+/ setting once at startup
-  chrome.storage.local.get("settings", (data) => {
-    const settings = data.settings || {};
-    state.useShiftSlash = settings.useShiftSlash ?? false;
-    console.log("Shift slash setting loaded:", state.useShiftSlash);
-  });
 
   // Setup listeners
   document.addEventListener("focus", handleFocus, true);
@@ -292,11 +284,6 @@ function handleInput(event) {
   const justTypedSlash = lastChar === "/" && prevLastChar !== "/";
 
   if (justTypedSlash) {
-    // Check Ctrl/Meta requirement when useShiftSlash is enabled
-    if (state.useShiftSlash && !state.ctrlPressed) {
-      return; // Don't open - Ctrl/Meta wasn't held
-    }
-
     state.lastSlashDetected = true;
     state.lastFocusedElement = event.target;
 
@@ -309,7 +296,7 @@ function handleInput(event) {
   }
 }
 
-// Track Shift key state
+// Handle special keys
 function handleGlobalKeydown(event) {
   // Special handler for "/" key - especially for Gmail and contenteditable elements
   if (event.key === "/" && !event.ctrlKey && !event.metaKey && !event.shiftKey && !state.isPopupOpen) {
@@ -371,11 +358,6 @@ function handleGlobalKeydown(event) {
     const isInContentEditable = contentEditableContainer || target.isContentEditable;
 
     if (isInGmailCompose || isInContentEditable) {
-      // Check Ctrl/Meta requirement when useShiftSlash is enabled
-      if (state.useShiftSlash) {
-        return; // Don't open - Ctrl/Meta wasn't held
-      }
-
       // Use the Gmail compose body, contenteditable container, or the target
       const focusElement = gmailComposeBody || contentEditableContainer || document.activeElement || target;
 
@@ -465,49 +447,12 @@ function handleGlobalKeydown(event) {
     return;
   }
 
-  // Handle Ctrl/Meta + / keyboard shortcut (only when useShiftSlash is enabled)
-  if (event.key === "/" && (event.ctrlKey || event.metaKey) && !event.shiftKey) {
-    if (state.useShiftSlash) {
-      event.preventDefault();
-
-      // Find focused input or use last focused
-      const target = document.activeElement;
-      if (isInput(target)) {
-        state.lastFocusedElement = target;
-
-        if (state.isPopupOpen) {
-          closePopup();
-        } else {
-          try {
-            chrome.storage.local.get(["settings", "notes"], (data) => {
-              if (chrome.runtime.lastError) {
-                console.log("BlockNotes: Extension context invalidated. Please reload the page.");
-                return;
-              }
-              state.notes = data.notes || {};
-              showPopup();
-            });
-          } catch (error) {
-            console.log("BlockNotes: Extension context invalidated. Please reload the page.");
-          }
-        }
-      }
-    }
-    return;
-  }
-
-  if (event.key === "Control" || event.key === "Meta") {
-    state.ctrlPressed = true;
-  }
   if (state.isPopupOpen) {
     handlePopupKeydown(event);
   }
 }
 
 function handleGlobalKeyup(event) {
-  if (event.key === "Control" || event.key === "Meta") {
-    state.ctrlPressed = false;
-  }
   if (event.key === "/") {
     state.lastSlashDetected = true;
   }
@@ -1654,12 +1599,6 @@ function pasteNote(text) {
 }
 
 function handleMessage(request) {
-  if (request.action === "updateShiftSlashSetting") {
-    state.useShiftSlash = request.useShiftSlash;
-    console.log("Updated shift slash setting:", state.useShiftSlash);
-    return;
-  }
-
   if (request.action === "pasteValue") {
     pasteNote(request.value);
   }
@@ -1966,9 +1905,11 @@ function saveSelectedText() {
       const provider = settings.aiProvider;
       const model = settings.aiModel;
       const apiKey = settings.key;
-      const autonameEnabled = settings.autonameSelection;
+      const hasAIConfigured = provider && provider !== "none" && model && apiKey;
+      // Defaults to true, user can disable it
+      const autonameEnabled = settings.autonameSelection !== false;
 
-      if (autonameEnabled && provider && model && apiKey) {
+      if (autonameEnabled && hasAIConfigured) {
         console.log("BlockNotes: Auto-naming enabled, calling AI...");
         generateNoteName(text, provider, model, apiKey)
           .then((suggestedName) => {

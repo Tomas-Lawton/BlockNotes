@@ -726,8 +726,11 @@ function makeNote(noteText) {
       checkNoteMessage(savedNotes);
       updateStats();
 
-      // If AI key is set, generate name and update
-      if (AIKEY) {
+      // Check if auto-naming is enabled for new notes (defaults to true)
+      const hasAIConfigured = AIKEY && provider && provider !== "none" && model;
+      const autonameEnabled = settings.autonameNewNotes !== false;
+
+      if (autonameEnabled && hasAIConfigured) {
         generateNoteName(noteText, provider, model, AIKEY)
           .then((suggestedName) => {
             console.log(`${provider} response:`, suggestedName);
@@ -2511,9 +2514,9 @@ function loadSettingsPageValues() {
     const providerSelect = document.getElementById("page-ai-provider");
     const modelInput = document.getElementById("page-ai-model");
     const keyInput = document.getElementById("page-ai-key");
-    const ctrlSlashCheckbox = document.getElementById("page-ctrl-slash");
     const autofillCheckbox = document.getElementById("page-autofill");
     const playSoundsCheckbox = document.getElementById("page-play-sounds");
+    const autonameNewNotesCheckbox = document.getElementById("page-autoname-newnotes");
     const autonameSelectionCheckbox = document.getElementById("page-autoname-selection");
     const noteSizeSlider = document.getElementById("page-note-size");
     const noteSizeValue = document.getElementById("page-note-size-value");
@@ -2521,10 +2524,15 @@ function loadSettingsPageValues() {
     if (providerSelect) providerSelect.value = settings.aiProvider || "none";
     if (modelInput) modelInput.value = settings.aiModel || "";
     if (keyInput) keyInput.value = settings.key || "";
-    if (ctrlSlashCheckbox) ctrlSlashCheckbox.checked = settings.useShiftSlash || false;
     if (autofillCheckbox) autofillCheckbox.checked = settings.autoFillPlaceholders || false;
     if (playSoundsCheckbox) playSoundsCheckbox.checked = settings.playSounds !== false;
-    if (autonameSelectionCheckbox) autonameSelectionCheckbox.checked = settings.autonameSelection || false;
+    // Auto-name settings default to true, user can disable them
+    if (autonameNewNotesCheckbox) {
+      autonameNewNotesCheckbox.checked = settings.autonameNewNotes !== false;
+    }
+    if (autonameSelectionCheckbox) {
+      autonameSelectionCheckbox.checked = settings.autonameSelection !== false;
+    }
 
     const savedSize = settings.noteSize || 320;
     if (noteSizeSlider) noteSizeSlider.value = savedSize;
@@ -2540,6 +2548,35 @@ function initSettingsPage() {
   const importFile = document.getElementById("page-import-file");
   const noteSizeSlider = document.getElementById("page-note-size");
   const noteSizeValue = document.getElementById("page-note-size-value");
+
+  // Function to mark save button as having unsaved changes
+  const markUnsavedChanges = () => {
+    if (saveBtn) {
+      saveBtn.textContent = "Save Settings *";
+      saveBtn.style.background = "#f59e0b"; // Amber/warning color
+      saveBtn.style.boxShadow = "3px 3px 0 rgba(217, 119, 6, 0.6)"; // Amber shadow
+    }
+  };
+
+  // Add change listeners to all settings inputs
+  const settingsInputs = [
+    "page-ai-provider",
+    "page-ai-model",
+    "page-ai-key",
+    "page-autofill",
+    "page-play-sounds",
+    "page-autoname-newnotes",
+    "page-autoname-selection",
+    "page-note-size"
+  ];
+
+  settingsInputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener("change", markUnsavedChanges);
+      el.addEventListener("input", markUnsavedChanges);
+    }
+  });
 
   // Update note size value display and apply in real-time
   noteSizeSlider?.addEventListener("input", () => {
@@ -2559,9 +2596,9 @@ function initSettingsPage() {
     const providerSelect = document.getElementById("page-ai-provider");
     const modelInput = document.getElementById("page-ai-model");
     const keyInput = document.getElementById("page-ai-key");
-    const ctrlSlashCheckbox = document.getElementById("page-ctrl-slash");
     const autofillCheckbox = document.getElementById("page-autofill");
     const playSoundsCheckbox = document.getElementById("page-play-sounds");
+    const autonameNewNotesCheckbox = document.getElementById("page-autoname-newnotes");
     const autonameSelectionCheckbox = document.getElementById("page-autoname-selection");
     const noteSizeSlider = document.getElementById("page-note-size");
 
@@ -2571,9 +2608,9 @@ function initSettingsPage() {
       settings.aiProvider = providerSelect?.value || "";
       settings.aiModel = modelInput?.value || "";
       settings.key = keyInput?.value || "";
-      settings.useShiftSlash = ctrlSlashCheckbox?.checked || false;
       settings.autoFillPlaceholders = autofillCheckbox?.checked || false;
       settings.playSounds = playSoundsCheckbox?.checked !== false;
+      settings.autonameNewNotes = autonameNewNotesCheckbox?.checked || false;
       settings.autonameSelection = autonameSelectionCheckbox?.checked || false;
       settings.noteSize = parseInt(noteSizeSlider?.value || 320);
 
@@ -2587,14 +2624,27 @@ function initSettingsPage() {
       if (toolbarSlider) toolbarSlider.value = settings.noteSize;
 
       chrome.storage.local.set({ settings }, () => {
-        // Show save feedback
+        // Broadcast settings to all tabs so they update without refresh
+        chrome.tabs.query({}, (tabs) => {
+          tabs.forEach((tab) => {
+            if (tab.id) {
+              chrome.tabs.sendMessage(tab.id, {
+                action: "settingsUpdated",
+                settings: settings
+              }).catch(() => {}); // Ignore errors for tabs without content script
+            }
+          });
+        });
+
+        // Show save feedback and reset unsaved indicator
         if (saveBtn) {
-          const originalText = saveBtn.textContent;
           saveBtn.textContent = "Saved!";
-          saveBtn.style.background = "#10b981";
+          saveBtn.style.background = "#10b981"; // Green
+          saveBtn.style.boxShadow = "3px 3px 0 rgba(5, 150, 105, 0.6)"; // Green shadow
           setTimeout(() => {
-            saveBtn.textContent = originalText;
+            saveBtn.textContent = "Save Settings";
             saveBtn.style.background = "";
+            saveBtn.style.boxShadow = ""; // Reset to default purple shadow
           }, 1500);
         }
         console.log("Settings saved");
@@ -2887,6 +2937,13 @@ function initWalkthrough() {
 
     // Skip button
     modal.querySelector('.walkthrough-skip')?.addEventListener('click', closeWalkthrough);
+
+    // Click on background to skip
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeWalkthrough();
+      }
+    });
 
     // Dot navigation
     modal.querySelectorAll('.walkthrough-dots .dot').forEach(dot => {
