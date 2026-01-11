@@ -1161,8 +1161,12 @@ function createNote({ noteText, date, noteIndex, displayIndex, noteName, noteCol
       const text = input2.value;
       const before = text.substring(0, start);
       const after = text.substring(end);
-      input2.value = before + "{{placeholder}}" + after;
-      input2.selectionStart = input2.selectionEnd = start + 15; // Position cursor after placeholder
+      // Use selected text as placeholder name if available, otherwise default to "placeholder"
+      const selectedText = text.substring(start, end).trim();
+      const placeholderName = selectedText || "placeholder";
+      const placeholder = `{{${placeholderName}}}`;
+      input2.value = before + placeholder + after;
+      input2.selectionStart = input2.selectionEnd = start + placeholder.length;
       input2.focus();
       autoResize();
     });

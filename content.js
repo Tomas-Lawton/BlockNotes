@@ -1570,21 +1570,27 @@ function pasteNote(text) {
         let insertContainer = range.startContainer;
         let insertOffset = range.startOffset;
 
-        // Delete the "/" character if it exists before cursor
+        // Delete the "/" character and search query if they exist
         if (slashIndex >= 0 && insertContainer.nodeType === Node.TEXT_NODE) {
-          // Look backwards for the "/" character
-          const textBeforeCursor = insertContainer.textContent || '';
+          const textContent = insertContainer.textContent || '';
 
-          // Check if there's a "/" right before the cursor
-          if (insertOffset > 0 && textBeforeCursor[insertOffset - 1] === '/') {
-            // Delete the "/" by creating a range
+          // Find the "/" position in this text node
+          const slashPosInText = textContent.lastIndexOf('/');
+
+          if (slashPosInText >= 0) {
+            // Get the search query to calculate how much to delete
+            const searchQuery = extractQuery();
+            // Calculate end position: slash + 1 (for "/") + query length
+            const endPos = Math.min(slashPosInText + 1 + searchQuery.length, textContent.length);
+
+            // Delete from slash through the search query
             const deleteRange = document.createRange();
-            deleteRange.setStart(insertContainer, insertOffset - 1);
-            deleteRange.setEnd(insertContainer, insertOffset);
+            deleteRange.setStart(insertContainer, slashPosInText);
+            deleteRange.setEnd(insertContainer, endPos);
             deleteRange.deleteContents();
 
-            // Update insert position (moved back by 1 after deletion)
-            insertOffset = insertOffset - 1;
+            // Update insert position to where "/" was
+            insertOffset = slashPosInText;
           }
         }
 
