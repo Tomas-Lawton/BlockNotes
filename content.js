@@ -1207,6 +1207,7 @@ function showPlaceholderPrompt(noteText, placeholders) {
 
   const promptContainer = document.createElement("div");
   promptContainer.className = "blocknotes-placeholder-prompt";
+  promptContainer.tabIndex = -1; // Make container focusable for focus trapping
   promptContainer.style.cssText = `
     position: fixed;
     top: 50%;
@@ -1223,6 +1224,46 @@ function showPlaceholderPrompt(noteText, placeholders) {
     overflow: hidden;
     animation: placeholderPromptFadeIn 0.2s ease;
   `;
+
+  // Prevent focus from escaping to Word/Google Docs
+  promptContainer.addEventListener('focusout', (e) => {
+    // If focus is leaving the container, pull it back
+    if (!promptContainer.contains(e.relatedTarget)) {
+      e.preventDefault();
+      e.stopPropagation();
+      // Re-focus the first input or the container itself
+      const firstFocusable = promptContainer.querySelector('input, button');
+      if (firstFocusable) {
+        setTimeout(() => firstFocusable.focus(), 0);
+      }
+    }
+  });
+
+  // Stop keyboard events from propagating to the document editor
+  promptContainer.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+
+    // Handle Tab key to trap focus within the prompt
+    if (e.key === 'Tab') {
+      const focusableElements = promptContainer.querySelectorAll(
+        'input:not([disabled]), button:not([disabled])'
+      );
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey && document.activeElement === firstElement) {
+        e.preventDefault();
+        lastElement.focus();
+      } else if (!e.shiftKey && document.activeElement === lastElement) {
+        e.preventDefault();
+        firstElement.focus();
+      }
+    }
+  }, true);
+
+  // Also stop keyup and keypress from propagating
+  promptContainer.addEventListener('keyup', (e) => e.stopPropagation(), true);
+  promptContainer.addEventListener('keypress', (e) => e.stopPropagation(), true);
 
   // Header
   const header = document.createElement("div");
@@ -1414,12 +1455,10 @@ function showPlaceholderPrompt(noteText, placeholders) {
     fieldGroup.appendChild(label);
     fieldGroup.appendChild(input);
     form.appendChild(fieldGroup);
-
-    // Auto-focus first input
-    if (index === 0) {
-      setTimeout(() => input.focus(), 100);
-    }
   });
+
+  // Store reference to first input for focus after DOM attachment
+  const firstInput = inputs[placeholders[0]];
 
   // Buttons
   const buttonGroup = document.createElement("div");
@@ -1524,6 +1563,25 @@ function showPlaceholderPrompt(noteText, placeholders) {
   promptContainer.appendChild(form);
   document.body.appendChild(promptContainer);
 
+  // Focus the first input after DOM attachment for keyboard input
+  // Use multiple attempts to combat aggressive focus stealing from Word/Docs
+  if (firstInput) {
+    const focusInput = () => {
+      firstInput.focus();
+      // Ensure the input is actually focused
+      if (document.activeElement !== firstInput) {
+        firstInput.focus();
+      }
+    };
+
+    // Immediate focus
+    focusInput();
+    // Delayed focus attempts to combat focus stealing
+    setTimeout(focusInput, 50);
+    setTimeout(focusInput, 100);
+    setTimeout(focusInput, 200);
+  }
+
   // Add animation styles
   if (!document.getElementById("blocknotes-placeholder-styles")) {
     const style = document.createElement("style");
@@ -1547,6 +1605,41 @@ function showPlaceholderPrompt(noteText, placeholders) {
 // ============================================
 // PASTE
 // ============================================
+
+// Detect if contenteditable uses paragraph (<p>) structure for line breaks
+// This is common in Word, many rich text editors, etc.
+function usesParagraphStructure(el) {
+  if (!el) return false;
+
+  // Check if the element contains <p> tags as direct children or nested
+  const hasParagraphs = el.querySelector('p') !== null;
+
+  // Check if hitting Enter would create a paragraph (test by examining existing structure)
+  // If first child is a <p>, it's likely a paragraph-based editor
+  const firstChild = el.firstElementChild;
+  if (firstChild && firstChild.tagName === 'P') {
+    return true;
+  }
+
+  // Check if there are multiple <p> siblings (indicates paragraph structure)
+  const paragraphs = el.querySelectorAll(':scope > p');
+  if (paragraphs.length > 0) {
+    return true;
+  }
+
+  // Check for common rich text editor patterns that use paragraphs
+  // These editors wrap content in <p> tags
+  if (el.closest('[data-contents="true"]') || // Draft.js
+      el.closest('.ql-editor') || // Quill
+      el.closest('.ProseMirror') || // ProseMirror
+      el.closest('.tox-edit-area') || // TinyMCE
+      el.closest('[contenteditable="true"] p')) { // Generic paragraph container
+    return true;
+  }
+
+  return hasParagraphs;
+}
+
 function pasteNote(text) {
   const el = state.lastFocusedElement;
   if (!el) return;
@@ -1579,105 +1672,224 @@ function pasteNote(text) {
     el.setSelectionRange(content.length, content.length);
   } else if (el.isContentEditable) {
     // For contenteditable, we need to handle newlines properly
-    // especially for Gmail and similar rich text editors
-    const isGmail = window.location.hostname.includes("mail.google.com");
+    // Detect the editor type by structure, not by URL
+    const hasNewlines = text.includes('\n');
+    const isParagraphEditor = usesParagraphStructure(el);
 
-    if (isGmail) {
-      // Gmail needs special handling - insert at cursor position with range manipulation
-      // Use saved range since clicking popup loses the selection
-      let range = state.savedRange;
-      if (!range) {
-        const selection = window.getSelection();
-        if (selection.rangeCount > 0) {
-          range = selection.getRangeAt(0);
+    // Use saved range since clicking popup loses the selection
+    let range = state.savedRange;
+    if (!range) {
+      const selection = window.getSelection();
+      if (selection.rangeCount > 0) {
+        range = selection.getRangeAt(0);
+      }
+    }
+
+    if (range) {
+      let insertContainer = range.startContainer;
+      let insertOffset = range.startOffset;
+
+      // Delete the "/" character and search query if they exist
+      if (slashIndex >= 0 && insertContainer.nodeType === Node.TEXT_NODE) {
+        const textContent = insertContainer.textContent || '';
+
+        // Find the "/" position in this text node
+        const slashPosInText = textContent.lastIndexOf('/');
+
+        if (slashPosInText >= 0) {
+          // Get the search query to calculate how much to delete
+          const searchQuery = extractQuery();
+          // Calculate end position: slash + 1 (for "/") + query length
+          const endPos = Math.min(slashPosInText + 1 + searchQuery.length, textContent.length);
+
+          // Delete from slash through the search query
+          const deleteRange = document.createRange();
+          deleteRange.setStart(insertContainer, slashPosInText);
+          deleteRange.setEnd(insertContainer, endPos);
+          deleteRange.deleteContents();
+
+          // Update insert position to where "/" was
+          insertOffset = slashPosInText;
         }
       }
 
-      if (range) {
-        let insertContainer = range.startContainer;
-        let insertOffset = range.startOffset;
-
-        // Delete the "/" character and search query if they exist
-        if (slashIndex >= 0 && insertContainer.nodeType === Node.TEXT_NODE) {
-          const textContent = insertContainer.textContent || '';
-
-          // Find the "/" position in this text node
-          const slashPosInText = textContent.lastIndexOf('/');
-
-          if (slashPosInText >= 0) {
-            // Get the search query to calculate how much to delete
-            const searchQuery = extractQuery();
-            // Calculate end position: slash + 1 (for "/") + query length
-            const endPos = Math.min(slashPosInText + 1 + searchQuery.length, textContent.length);
-
-            // Delete from slash through the search query
-            const deleteRange = document.createRange();
-            deleteRange.setStart(insertContainer, slashPosInText);
-            deleteRange.setEnd(insertContainer, endPos);
-            deleteRange.deleteContents();
-
-            // Update insert position to where "/" was
-            insertOffset = slashPosInText;
-          }
-        }
-
-        // Create a new range at the insert position
-        range = document.createRange();
+      // Create a new range at the insert position
+      range = document.createRange();
+      try {
         range.setStart(insertContainer, insertOffset);
-        range.collapse(true);
-
-        // Now insert the note text at current cursor position
-        // Split note text by newlines and insert with proper formatting
-        const lines = text.split('\n');
-        for (let index = 0; index < lines.length; index++) {
-          const line = lines[index];
-          const textNode = document.createTextNode(line);
-          range.insertNode(textNode);
-          range.setStartAfter(textNode);
-          range.setEndAfter(textNode);
-          range.collapse(false);
-
-          if (index < lines.length - 1) {
-            // Insert line break
-            const br = document.createElement('br');
-            range.insertNode(br);
-            range.setStartAfter(br);
-            range.setEndAfter(br);
-            range.collapse(false);
-          }
-        }
-
-        // Move cursor to end
-        const sel = window.getSelection();
-        sel.removeAllRanges();
-        sel.addRange(range);
-
-        // Clear saved range after use
-        state.savedRange = null;
-      } else {
-        el.textContent = content;
+      } catch (e) {
+        // If the container was modified, start at beginning
+        range.setStart(insertContainer, 0);
       }
-    } else {
-      // Standard contenteditable - use textContent
-      el.textContent = content;
+      range.collapse(true);
 
-      // Move cursor to end
-      const range = document.createRange();
+      // Set cursor position before inserting
       const sel = window.getSelection();
-      range.selectNodeContents(el);
-      range.collapse(false);
       sel.removeAllRanges();
       sel.addRange(range);
+
+      // Insert text based on editor type
+      if (hasNewlines) {
+        // Multiline text - insert line by line
+        const lines = text.split('\n');
+
+        if (isParagraphEditor) {
+          // Paragraph-based editor (Word, rich text editors)
+          // Use keyboard simulation for better compatibility with Word
+          insertWithKeyboardSimulation(lines, el);
+        } else {
+          // Line-break based editor (Gmail, simple contenteditable)
+          // Use insertLineBreak or <br> tags
+          for (let index = 0; index < lines.length; index++) {
+            const line = lines[index];
+            document.execCommand('insertText', false, line);
+
+            if (index < lines.length - 1) {
+              document.execCommand('insertLineBreak', false);
+            }
+          }
+        }
+      } else {
+        // Single line - simple insert
+        document.execCommand('insertText', false, text);
+      }
+
+      // Clear saved range after use
+      state.savedRange = null;
+    } else {
+      // Fallback: no saved range, try to focus and insert
+      el.focus();
+      if (hasNewlines) {
+        insertTextLineByLine(text, isParagraphEditor);
+      } else {
+        document.execCommand('insertText', false, text);
+      }
     }
   }
 
   // Update previous value
-  state.previousValue = content;
+  state.previousValue = getValue(el);
 
   // Trigger events
   el.dispatchEvent(new Event("input", { bubbles: true }));
   el.dispatchEvent(new Event("change", { bubbles: true }));
   el.focus();
+}
+
+// Helper function to insert text line by line using execCommand
+function insertTextLineByLine(text, useParagraphs = false) {
+  const lines = text.split('\n');
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index];
+    // Insert the text content
+    document.execCommand('insertText', false, line);
+
+    if (index < lines.length - 1) {
+      // Insert a line/paragraph break based on editor type
+      if (useParagraphs) {
+        document.execCommand('insertParagraph', false);
+      } else {
+        document.execCommand('insertLineBreak', false);
+      }
+    }
+  }
+}
+
+// Detect if we're in MS Word Online
+function isMSWordOnline() {
+  // Check URL
+  const hostname = window.location.hostname;
+  if (hostname.includes('word.office.com') ||
+      hostname.includes('word-edit.officeapps.live.com')) {
+    return true;
+  }
+
+  // Check for Word-specific DOM elements
+  if (document.querySelector('[data-app="Word"]') ||
+      document.querySelector('.WACViewPanel') ||
+      document.querySelector('[class*="WordEditor"]')) {
+    return true;
+  }
+
+  return false;
+}
+
+// Insert multiline text for paragraph-based editors (Word, rich text editors)
+async function insertWithKeyboardSimulation(lines, el) {
+  const text = lines.join('\n');
+
+  // For MS Word Online specifically, use clipboard-based paste
+  // Word has internal state management that gets out of sync with DOM manipulation
+  if (isMSWordOnline()) {
+    const clipboardSuccess = await insertViaClipboard(text, el);
+    if (clipboardSuccess) {
+      return;
+    }
+  }
+
+  // For other paragraph editors: Try inserting as plain text with newlines
+  const textInserted = document.execCommand('insertText', false, text);
+  if (textInserted) {
+    moveCursorToEnd(el);
+    return;
+  }
+
+  // Fallback: Insert each line separately with paragraph breaks
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index];
+
+    if (line.length > 0) {
+      document.execCommand('insertText', false, line);
+    }
+
+    if (index < lines.length - 1) {
+      document.execCommand('insertParagraph', false);
+    }
+  }
+
+  moveCursorToEnd(el);
+}
+
+// Insert text via clipboard for Word - copy and prompt user to paste
+async function insertViaClipboard(text, el) {
+  try {
+    // Write text to clipboard
+    await navigator.clipboard.writeText(text);
+
+    // Focus the element
+    el.focus();
+
+    // Show toast to prompt user to paste
+    // Programmatic paste is blocked by browsers for security
+    showToast("Press Ctrl/Cmd+V to paste", "Note copied to clipboard");
+
+    return true;
+  } catch (error) {
+    console.log('BlockNotes: Clipboard write failed, using fallback', error);
+    return false;
+  }
+}
+
+// Helper to move cursor to end of contenteditable
+function moveCursorToEnd(el) {
+  const selection = window.getSelection();
+  const range = document.createRange();
+
+  // Find the last text node or element
+  if (el.lastChild) {
+    if (el.lastChild.nodeType === Node.TEXT_NODE) {
+      range.setStart(el.lastChild, el.lastChild.textContent.length);
+    } else {
+      range.selectNodeContents(el.lastChild);
+      range.collapse(false);
+    }
+  } else {
+    range.selectNodeContents(el);
+    range.collapse(false);
+  }
+
+  selection.removeAllRanges();
+  selection.addRange(range);
 }
 
 function handleMessage(request) {
@@ -1756,10 +1968,10 @@ function handleTextSelection() {
   }
 
   state.selectedText = selectedText;
-  showQuickSaveButton(selection);
+  showQuickSaveButton();
 }
 
-function showQuickSaveButton(selection) {
+function showQuickSaveButton() {
   // Remove existing button if any
   removeQuickSaveButton();
 
