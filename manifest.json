@@ -3,7 +3,7 @@
   "description": "Smart clipboard and context-aware text expander. Save snippets, templates, and code blocks. Insert anywhere with /.",
   "version": "3.2",
   "manifest_version": 3,
-  "permissions": ["storage", "scripting", "activeTab"],
+  "permissions": ["storage"],
   "background": {
     "service_worker": "background.js",
     "type": "module"

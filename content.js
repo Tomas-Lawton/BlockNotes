@@ -280,10 +280,18 @@ function handleInput(event) {
   }
 
   // --- Detect fresh slash ---
-  // Allow "/" after any character including spaces
+  // Count slashes to detect if a new one was added (works even if not at end)
+  const currentSlashCount = (value.match(/\//g) || []).length;
+  const prevSlashCount = (previousValue.match(/\//g) || []).length;
+  const newSlashAdded = currentSlashCount > prevSlashCount;
+
+  // Also check the simple case: "/" typed at end
   const justTypedSlash = lastChar === "/" && prevLastChar !== "/";
 
-  if (justTypedSlash) {
+  // Fallback: if previousValue is empty/stale but current value ends with "/", treat as new slash
+  const fallbackSlashDetection = !previousValue && lastChar === "/";
+
+  if (newSlashAdded || justTypedSlash || fallbackSlashDetection) {
     state.lastSlashDetected = true;
     state.lastFocusedElement = event.target;
 
@@ -518,6 +526,11 @@ function handleDragEnd() {
 }
 
 function showPopup() {
+  // Safety check: if isPopupOpen is true but container doesn't exist, reset state
+  if (state.isPopupOpen && !state.popupContainer) {
+    state.isPopupOpen = false;
+  }
+
   if (state.isPopupOpen) return;
 
   // Allow showing popup even if no element is focused (will center it)
@@ -967,15 +980,17 @@ function handleClickOutside(event) {
 }
 
 function closePopup() {
-  if (!state.popupContainer) return;
-
+  // Always clean up listeners and reset state, even if popupContainer is already null
+  // (prevents stuck state if container was removed externally)
   state.lastFocusedElement?.removeEventListener("input", updateResults);
   document.removeEventListener("click", handleClickOutside);
   document.removeEventListener("keydown", handlePopupKeydown, true);
   document.removeEventListener("mousemove", handleDragMove);
   document.removeEventListener("mouseup", handleDragEnd);
 
-  state.popupContainer.remove();
+  if (state.popupContainer) {
+    state.popupContainer.remove();
+  }
   state.popupContainer = null;
   state.isPopupOpen = false;
   state.lastSlashDetected = false;
@@ -1007,12 +1022,79 @@ function handleNoteInsertion(noteText) {
   const placeholders = extractPlaceholders(noteText);
 
   if (placeholders.length === 0) {
-    // No placeholders, paste directly
-    pasteNote(noteText);
+    // No placeholders, paste directly with clipboard fallback
+    pasteNoteWithFallback(noteText);
   } else {
     // Show prompt to fill in placeholders
     showPlaceholderPrompt(noteText, placeholders);
   }
+}
+
+// Paste with clipboard fallback for sites where direct insertion may fail
+function pasteNoteWithFallback(text) {
+  // Always copy to clipboard first as safety net
+  navigator.clipboard.writeText(text).catch(() => {});
+
+  // Google Docs uses custom canvas rendering - execCommand won't work
+  const isGoogleDocs = window.location.hostname.includes("docs.google.com");
+  if (isGoogleDocs) {
+    showToast("Press Ctrl/Cmd+V to paste", "Note copied to clipboard");
+    return;
+  }
+
+  // Try direct insertion
+  pasteNote(text);
+}
+
+// Toast notification for clipboard fallback
+function showToast(message, subtitle) {
+  // Remove existing toast if any
+  const existing = document.querySelector('.blocknotes-toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.className = 'blocknotes-toast';
+  toast.innerHTML = `
+    <div style="font-weight: 600;">${escapeHtml(message)}</div>
+    ${subtitle ? `<div style="font-size: 12px; opacity: 0.8; margin-top: 2px;">${escapeHtml(subtitle)}</div>` : ''}
+  `;
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #1e293b;
+    color: #f1f5f9;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border: 1px solid #334155;
+    z-index: 2147483647;
+    animation: blocknotes-toast-in 0.2s ease;
+  `;
+
+  // Add animation keyframes if not exists
+  if (!document.getElementById('blocknotes-toast-styles')) {
+    const style = document.createElement('style');
+    style.id = 'blocknotes-toast-styles';
+    style.textContent = `
+      @keyframes blocknotes-toast-in {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  document.body.appendChild(toast);
+
+  // Auto-remove after 3 seconds
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.2s ease';
+    setTimeout(() => toast.remove(), 200);
+  }, 3000);
 }
 
 // Try to auto-fill placeholders from page context
@@ -1426,7 +1508,7 @@ function showPlaceholderPrompt(noteText, placeholders) {
     });
 
     promptContainer.remove();
-    pasteNote(finalText);
+    pasteNoteWithFallback(finalText);
   });
 
   // Handle escape key to close
