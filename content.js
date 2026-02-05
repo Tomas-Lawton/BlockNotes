@@ -2202,20 +2202,31 @@ function pasteNote(text) {
           // Characters to delete: "/" (1) + query length
           const charsToDelete = 1 + searchQuery.length;
 
+          // Edge case: when cursor is in the first line and slash is at position 0,
+          // the insertOffset might be 0 (before the slash) instead of after it.
+          // In this case, we need to ensure we delete from position 0 and insert after.
+          const isFirstLineEdgeCase = slashPosInText === 0 && insertOffset === 0;
+
           console.log("BlockNotes: Deleting slash via selection:", {
             textContent: textContent.substring(Math.max(0, slashPosInText - 5)),
             slashPosInText,
             searchQuery,
             charsToDelete,
             insertOffset,
+            isFirstLineEdgeCase,
           });
 
           // The cursor should be right after the query, so we select backwards
           // Create a range from slash position to current position
           try {
             const deleteRange = document.createRange();
-            deleteRange.setStart(insertContainer, slashPosInText);
-            deleteRange.setEnd(insertContainer, Math.min(slashPosInText + charsToDelete, textContent.length));
+            // For the first line edge case, ensure we start from position 0
+            // and delete the slash + query correctly
+            const deleteStart = slashPosInText;
+            const deleteEnd = Math.min(slashPosInText + charsToDelete, textContent.length);
+
+            deleteRange.setStart(insertContainer, deleteStart);
+            deleteRange.setEnd(insertContainer, deleteEnd);
 
             sel.removeAllRanges();
             sel.addRange(deleteRange);
@@ -2223,16 +2234,104 @@ function pasteNote(text) {
             // Delete the selected text
             document.execCommand('delete', false);
 
+            // For first line edge case, ensure cursor is positioned correctly after deletion
+            // The cursor should now be at the position where the slash was (position 0 for first line)
+            if (isFirstLineEdgeCase) {
+              // After deletion, cursor should be at slashPosInText (position 0)
+              // Verify and correct cursor position if needed
+              const currentSel = window.getSelection();
+              if (currentSel.rangeCount > 0) {
+                const currentRange = currentSel.getRangeAt(0);
+                console.log("BlockNotes: First line edge case - cursor after deletion:", {
+                  startOffset: currentRange.startOffset,
+                  collapsed: currentRange.collapsed,
+                });
+              }
+            }
+
             console.log("BlockNotes: Slash deleted successfully");
           } catch (e) {
             console.log("BlockNotes: Slash deletion failed, inserting at cursor:", e.message);
-            // Restore original position if deletion fails
-            sel.removeAllRanges();
-            sel.addRange(range);
+            // For first line edge case, if deletion fails, we need to position cursor after the slash+query
+            // to avoid inserting before the slash
+            if (isFirstLineEdgeCase) {
+              try {
+                const newRange = document.createRange();
+                const endPos = Math.min(slashPosInText + charsToDelete, textContent.length);
+                newRange.setStart(insertContainer, endPos);
+                newRange.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(newRange);
+                console.log("BlockNotes: First line edge case - positioned cursor after slash+query");
+              } catch (e2) {
+                console.log("BlockNotes: Could not reposition cursor:", e2.message);
+                sel.removeAllRanges();
+                sel.addRange(range);
+              }
+            } else {
+              // Restore original position if deletion fails
+              sel.removeAllRanges();
+              sel.addRange(range);
+            }
           }
         }
       } else if (slashIndex >= 0) {
-        console.log("BlockNotes: Slash not in text node, skipping deletion");
+        // Edge case: insertContainer is not a TEXT_NODE (common on first line)
+        // Need to find the text node containing the "/" and delete it
+        console.log("BlockNotes: Slash not in direct text node, searching for it");
+
+        try {
+          // Walk through the element to find the text node with the slash
+          const walker = document.createTreeWalker(
+            el,
+            NodeFilter.SHOW_TEXT,
+            null,
+            false
+          );
+
+          let textNode = walker.nextNode();
+          let slashNode = null;
+          let slashNodeOffset = -1;
+
+          while (textNode) {
+            const nodeSlashPos = textNode.textContent.lastIndexOf('/');
+            if (nodeSlashPos >= 0) {
+              slashNode = textNode;
+              slashNodeOffset = nodeSlashPos;
+              // Keep looking in case there's a later slash
+            }
+            textNode = walker.nextNode();
+          }
+
+          if (slashNode && slashNodeOffset >= 0) {
+            const searchQuery = extractQuery();
+            const charsToDelete = 1 + searchQuery.length;
+            const nodeTextLength = slashNode.textContent.length;
+
+            console.log("BlockNotes: Found slash in text node:", {
+              slashNodeOffset,
+              nodeTextLength,
+              searchQuery,
+              charsToDelete,
+              isFirstLine: slashNodeOffset === 0,
+            });
+
+            const deleteRange = document.createRange();
+            deleteRange.setStart(slashNode, slashNodeOffset);
+            deleteRange.setEnd(slashNode, Math.min(slashNodeOffset + charsToDelete, nodeTextLength));
+
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(deleteRange);
+            document.execCommand('delete', false);
+
+            console.log("BlockNotes: Slash deleted successfully (searched)");
+          } else {
+            console.log("BlockNotes: Could not find slash in any text node");
+          }
+        } catch (e) {
+          console.log("BlockNotes: Error searching for slash:", e.message);
+        }
       }
 
       // Insert text based on editor type
