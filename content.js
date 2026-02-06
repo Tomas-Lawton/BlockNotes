@@ -24,6 +24,7 @@ const state = {
   isPasting: false, // Prevent popup reopen during paste
   crossFrameSource: null, // Source window for cross-frame popup requests
   isCrossFramePopup: false, // Whether current popup was triggered from a child frame
+  googleDocsIframeDoc: null, // Reference to Google Docs iframe document for cleanup
 };
 
 // ============================================
@@ -1131,7 +1132,25 @@ function showPopup() {
     state.lastFocusedElement.addEventListener("input", updateResults);
   }
   document.addEventListener("click", handleClickOutside);
-  document.addEventListener("keydown", handlePopupKeydown, true);
+  // Use window-level capture to intercept keys before Google Docs iframe
+  window.addEventListener("keydown", handlePopupKeydown, true);
+
+  // For Google Docs: also add listener to the iframe where typing happens
+  if (isGoogleDocs) {
+    const docsTextTarget = document.querySelector(".docs-texteventtarget-iframe");
+    if (docsTextTarget) {
+      try {
+        const iframeDoc = docsTextTarget.contentDocument || docsTextTarget.contentWindow?.document;
+        if (iframeDoc) {
+          iframeDoc.addEventListener("keydown", handlePopupKeydown, true);
+          state.googleDocsIframeDoc = iframeDoc; // Save reference for cleanup
+          console.log("BlockNotes: Added keydown listener to Google Docs iframe");
+        }
+      } catch (e) {
+        console.log("BlockNotes: Could not access Google Docs iframe (cross-origin):", e.message);
+      }
+    }
+  }
 
   // Initial render
   updateResults();
@@ -1419,19 +1438,19 @@ function handlePopupKeydown(event) {
   switch (event.key) {
     case "ArrowDown":
       event.preventDefault();
-      event.stopPropagation();
+      event.stopImmediatePropagation(); // Prevent Google Docs from handling
       selectItem(state.selectedIndex < max ? state.selectedIndex + 1 : 0);
       break;
 
     case "ArrowUp":
       event.preventDefault();
-      event.stopPropagation();
+      event.stopImmediatePropagation(); // Prevent Google Docs from handling
       selectItem(state.selectedIndex > 0 ? state.selectedIndex - 1 : max);
       break;
 
     case "Enter":
       event.preventDefault();
-      event.stopPropagation();
+      event.stopImmediatePropagation(); // Prevent Google Docs from handling
       const matches = filterNotes(extractQuery());
       if (matches[state.selectedIndex]) {
         handleNoteInsertion(matches[state.selectedIndex].noteText);
@@ -1442,7 +1461,7 @@ function handlePopupKeydown(event) {
 
     case "Escape":
       event.preventDefault();
-      event.stopPropagation();
+      event.stopImmediatePropagation(); // Prevent Google Docs from handling
       closePopup();
       break;
 
@@ -1493,14 +1512,30 @@ function closePopup() {
   // (prevents stuck state if container was removed externally)
   state.lastFocusedElement?.removeEventListener("input", updateResults);
   document.removeEventListener("click", handleClickOutside);
-  document.removeEventListener("keydown", handlePopupKeydown, true);
+  window.removeEventListener("keydown", handlePopupKeydown, true);
   document.removeEventListener("mousemove", handleDragMove);
   document.removeEventListener("mouseup", handleDragEnd);
+
+  // Clean up Google Docs iframe listener
+  if (state.googleDocsIframeDoc) {
+    try {
+      state.googleDocsIframeDoc.removeEventListener("keydown", handlePopupKeydown, true);
+      console.log("BlockNotes: Removed keydown listener from Google Docs iframe");
+    } catch (e) {
+      // Ignore errors if iframe is no longer accessible
+    }
+    state.googleDocsIframeDoc = null;
+  }
 
   if (state.popupContainer) {
     console.log("BlockNotes: Removing popup container from DOM");
     state.popupContainer.remove();
   }
+
+  // Restore focus to the original input element
+  const isGoogleDocs = window.location.hostname.includes("docs.google.com");
+  const targetElement = state.lastFocusedElement;
+
   state.popupContainer = null;
   state.isPopupOpen = false;
   state.lastSlashDetected = false;
@@ -1510,6 +1545,43 @@ function closePopup() {
   state.isPasting = false; // Reset just in case
   state.crossFrameSource = null; // Reset cross-frame state
   state.isCrossFramePopup = false;
+
+  // Restore focus after state cleanup
+  if (isGoogleDocs) {
+    // For Google Docs, focus the text event target iframe
+    // Note: Don't dispatch mouse events as they move the cursor to wrong position
+    const docsTextTargetIframe = document.querySelector(".docs-texteventtarget-iframe");
+
+    const restoreFocusToGoogleDocs = () => {
+      if (docsTextTargetIframe) {
+        try {
+          const iframeDoc = docsTextTargetIframe.contentDocument || docsTextTargetIframe.contentWindow?.document;
+          if (iframeDoc) {
+            const iframeBody = iframeDoc.body;
+            const iframeEditable = iframeDoc.querySelector('[contenteditable="true"]') || iframeBody;
+            if (iframeEditable) {
+              iframeEditable.focus();
+              console.log("BlockNotes: Focused inside Google Docs iframe (closePopup)");
+              return;
+            }
+          }
+        } catch (e) {
+          // Cross-origin fallback
+        }
+        docsTextTargetIframe.focus();
+        console.log("BlockNotes: Focused Google Docs iframe element (closePopup)");
+      }
+    };
+
+    // Multiple attempts to combat focus issues
+    restoreFocusToGoogleDocs();
+    setTimeout(restoreFocusToGoogleDocs, 50);
+    setTimeout(restoreFocusToGoogleDocs, 150);
+  } else if (targetElement) {
+    // For other sites, focus the original element
+    targetElement.focus();
+    console.log("BlockNotes: Restored focus to lastFocusedElement");
+  }
 
   console.log("BlockNotes: closePopup completed, isPopupOpen:", state.isPopupOpen);
 }
@@ -1542,11 +1614,17 @@ function handleNoteInsertion(noteText) {
       // No placeholders - send note to child frame and copy to clipboard
       sendNoteToChildFrame(noteText);
 
+      // Set isPasting flag to prevent popup from reopening when user pastes
+      state.isPasting = true;
+      setTimeout(() => {
+        state.isPasting = false;
+      }, 3000);
+
       // Also copy to clipboard as fallback
       navigator.clipboard.writeText(noteText).then(() => {
-        showToast("Note copied! Paste with Ctrl/Cmd+V if needed.");
+        showToast("Press Ctrl/Cmd+V to paste", "Note copied to clipboard");
       }).catch(() => {
-        showToast("Note copied to clipboard. Paste with Ctrl/Cmd+V");
+        showToast("Press Ctrl/Cmd+V to paste", "Note copied to clipboard");
       });
     } else {
       // Has placeholders - show prompt, then send result to child frame
@@ -1621,6 +1699,45 @@ function pasteNoteWithFallback(text) {
     }
 
     showToast("Press Ctrl/Cmd+V to paste", "Note copied to clipboard");
+
+    // Set isPasting flag to prevent popup from reopening when user pastes
+    // Keep it active for a few seconds to cover the time user takes to press Ctrl+V
+    state.isPasting = true;
+    setTimeout(() => {
+      state.isPasting = false;
+    }, 3000);
+
+    // Restore focus to Google Docs input so user can paste
+    // Note: Don't dispatch mouse events as they move the cursor to wrong position
+    const restoreFocusToGoogleDocs = () => {
+      const docsTextTargetIframe = document.querySelector(".docs-texteventtarget-iframe");
+
+      // Focus the iframe where text input happens - Google Docs maintains cursor position internally
+      if (docsTextTargetIframe) {
+        try {
+          const iframeDoc = docsTextTargetIframe.contentDocument || docsTextTargetIframe.contentWindow?.document;
+          if (iframeDoc) {
+            const iframeBody = iframeDoc.body;
+            const iframeEditable = iframeDoc.querySelector('[contenteditable="true"]') || iframeBody;
+            if (iframeEditable) {
+              iframeEditable.focus();
+              console.log("BlockNotes: Focused inside Google Docs iframe");
+              return;
+            }
+          }
+        } catch (e) {
+          // Cross-origin, fall back to focusing the iframe itself
+        }
+        docsTextTargetIframe.focus();
+        console.log("BlockNotes: Focused Google Docs iframe element");
+      }
+    };
+
+    // Multiple attempts to ensure focus is restored
+    restoreFocusToGoogleDocs();
+    setTimeout(restoreFocusToGoogleDocs, 50);
+    setTimeout(restoreFocusToGoogleDocs, 150);
+
     return;
   }
 
@@ -1855,6 +1972,47 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
   // Save the focused element and selection range before showing prompt
   const targetElement = state.lastFocusedElement;
   const savedRange = state.savedRange;
+  const isGoogleDocs = window.location.hostname.includes("docs.google.com");
+  const isLinkedIn = window.location.hostname.includes("linkedin.com");
+
+  // For LinkedIn, use iframe-based prompt to bypass their aggressive event blocking
+  if (isLinkedIn) {
+    showPlaceholderPromptIframe(noteText, placeholders, isCrossFrame, targetElement, savedRange);
+    return;
+  }
+
+  // Helper to restore focus when closing the prompt
+  // Note: Don't dispatch mouse events as they move the cursor to wrong position
+  const restoreFocusAfterClose = () => {
+    if (isGoogleDocs) {
+      const docsTextTargetIframe = document.querySelector(".docs-texteventtarget-iframe");
+
+      const restoreFocus = () => {
+        if (docsTextTargetIframe) {
+          try {
+            const iframeDoc = docsTextTargetIframe.contentDocument || docsTextTargetIframe.contentWindow?.document;
+            if (iframeDoc) {
+              const iframeBody = iframeDoc.body;
+              const iframeEditable = iframeDoc.querySelector('[contenteditable="true"]') || iframeBody;
+              if (iframeEditable) {
+                iframeEditable.focus();
+                return;
+              }
+            }
+          } catch (e) {
+            // Cross-origin fallback
+          }
+          docsTextTargetIframe.focus();
+        }
+      };
+
+      restoreFocus();
+      setTimeout(restoreFocus, 50);
+      setTimeout(restoreFocus, 150);
+    } else if (targetElement) {
+      targetElement.focus();
+    }
+  };
 
   const promptContainer = document.createElement("div");
   promptContainer.className = "blocknotes-placeholder-prompt";
@@ -1877,6 +2035,8 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
+    pointer-events: auto !important;
+    color: #f1f5f9 !important;
   `;
 
   // Prevent focus from escaping to Word/Google Docs
@@ -1896,6 +2056,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
   // Stop keyboard events from propagating to the document editor
   promptContainer.addEventListener('keydown', (e) => {
     e.stopPropagation();
+    e.stopImmediatePropagation();
 
     // Handle Tab key to trap focus within the prompt
     if (e.key === 'Tab') {
@@ -1916,59 +2077,98 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
   }, true);
 
   // Also stop keyup and keypress from propagating
-  promptContainer.addEventListener('keyup', (e) => e.stopPropagation(), true);
-  promptContainer.addEventListener('keypress', (e) => e.stopPropagation(), true);
+  promptContainer.addEventListener('keyup', (e) => { e.stopPropagation(); e.stopImmediatePropagation(); }, true);
+  promptContainer.addEventListener('keypress', (e) => { e.stopPropagation(); e.stopImmediatePropagation(); }, true);
+
+  // Stop mouse events from propagating to page (fixes LinkedIn blocking inputs)
+  // Use window-level capture to intercept BEFORE LinkedIn's handlers
+  const isInsidePrompt = (target) => {
+    return promptContainer.contains(target) || target === promptContainer;
+  };
+
+  const windowEventInterceptor = (e) => {
+    if (isInsidePrompt(e.target)) {
+      e.stopImmediatePropagation();
+    }
+  };
+
+  // Add window-level interceptors in capture phase (runs before LinkedIn's handlers)
+  const eventsToIntercept = ['mousedown', 'mouseup', 'click', 'pointerdown', 'pointerup', 'focusin', 'focusout', 'focus', 'blur'];
+  eventsToIntercept.forEach(eventType => {
+    window.addEventListener(eventType, windowEventInterceptor, true);
+  });
+
+  // Clean up window listeners when prompt is removed
+  const originalRemove = promptContainer.remove.bind(promptContainer);
+  promptContainer.remove = () => {
+    eventsToIntercept.forEach(eventType => {
+      window.removeEventListener(eventType, windowEventInterceptor, true);
+    });
+    originalRemove();
+  };
+
+  // Also keep container-level handlers as backup
+  const stopMousePropagation = (e) => {
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+  };
+  promptContainer.addEventListener("mousedown", stopMousePropagation, true);
+  promptContainer.addEventListener("mouseup", stopMousePropagation, true);
+  promptContainer.addEventListener("click", stopMousePropagation, true);
+  promptContainer.addEventListener("pointerdown", stopMousePropagation, true);
+  promptContainer.addEventListener("pointerup", stopMousePropagation, true);
 
   // Header
   const header = document.createElement("div");
   header.style.cssText = `
-    padding: 16px 20px;
-    border-bottom: 1px solid #334155;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #334155;
+    padding: 16px 20px !important;
+    border-bottom: 1px solid #334155 !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    background: #334155 !important;
   `;
 
   const title = document.createElement("h3");
   title.textContent = "Fill in values";
   title.style.cssText = `
-    margin: 0;
-    font-size: 15px;
-    font-weight: 600;
-    color: #f1f5f9;
+    margin: 0 !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: #f1f5f9 !important;
   `;
 
   const closeBtn = document.createElement("button");
   closeBtn.innerHTML = "×";
   closeBtn.style.cssText = `
-    background: transparent;
-    border: none;
-    font-size: 24px;
-    color: #94a3b8;
-    cursor: pointer;
-    padding: 0;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-    transition: all 0.15s ease;
+    background: transparent !important;
+    border: none !important;
+    font-size: 24px !important;
+    color: #94a3b8 !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    width: 24px !important;
+    height: 24px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 4px !important;
+    transition: all 0.15s ease !important;
   `;
 
   closeBtn.addEventListener("mouseenter", () => {
-    closeBtn.style.background = "#475569";
-    closeBtn.style.color = "#f1f5f9";
+    closeBtn.style.setProperty('background', '#475569', 'important');
+    closeBtn.style.setProperty('color', '#f1f5f9', 'important');
   });
 
   closeBtn.addEventListener("mouseleave", () => {
-    closeBtn.style.background = "transparent";
-    closeBtn.style.color = "#94a3b8";
+    closeBtn.style.setProperty('background', 'transparent', 'important');
+    closeBtn.style.setProperty('color', '#94a3b8', 'important');
   });
 
   closeBtn.addEventListener("click", () => {
     promptContainer.remove();
+    restoreFocusAfterClose();
   });
 
   header.appendChild(title);
@@ -1986,29 +2186,31 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     background: transparent !important;
     margin: 0 !important;
     border: none !important;
+    pointer-events: auto !important;
+    font-family: 'Inter', -apple-system, sans-serif !important;
   `;
 
   // Auto-fill toggle
   const autoFillContainer = document.createElement("div");
   autoFillContainer.style.cssText = `
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 12px;
-    background: rgba(129, 140, 248, 0.1);
-    border: 1px solid rgba(129, 140, 248, 0.2);
-    border-radius: 8px;
-    margin-bottom: 4px;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 10px 12px !important;
+    background: rgba(129, 140, 248, 0.1) !important;
+    border: 1px solid rgba(129, 140, 248, 0.2) !important;
+    border-radius: 8px !important;
+    margin-bottom: 4px !important;
   `;
 
   const autoFillLabel = document.createElement("label");
   autoFillLabel.style.cssText = `
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    color: #f1f5f9;
-    cursor: pointer;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    font-size: 13px !important;
+    color: #f1f5f9 !important;
+    cursor: pointer !important;
   `;
   autoFillLabel.innerHTML = `
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2023,10 +2225,10 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
   autoFillToggle.type = "checkbox";
   autoFillToggle.id = "blocknotes-autofill-toggle";
   autoFillToggle.style.cssText = `
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    accent-color: #818cf8;
+    width: 18px !important;
+    height: 18px !important;
+    cursor: pointer !important;
+    accent-color: #818cf8 !important;
   `;
 
   // Load saved preference
@@ -2083,31 +2285,33 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
       font-weight: 600 !important;
       color: #f1f5f9 !important;
       display: block !important;
+      font-family: 'Inter', -apple-system, sans-serif !important;
     `;
 
     const input = document.createElement("input");
     input.type = "text";
     input.placeholder = `Enter ${placeholder}`;
+    input.setAttribute("autocomplete", "off");
+    input.setAttribute("autocorrect", "off");
+    input.setAttribute("autocapitalize", "off");
+    input.setAttribute("spellcheck", "false");
     input.style.cssText = `
+      box-sizing: border-box !important;
       padding: 10px 12px !important;
       border: 1px solid #334155 !important;
       border-radius: 8px !important;
       font-family: 'Inter', -apple-system, sans-serif !important;
       font-size: 14px !important;
+      font-weight: 400 !important;
       color: #f1f5f9 !important;
       background: #334155 !important;
       outline: none !important;
-      transition: all 0.2s ease !important;
-      width: auto !important;
-      height: auto !important;
-      min-height: 0 !important;
-      max-height: none !important;
-      box-sizing: border-box !important;
-      -webkit-appearance: none !important;
-      -moz-appearance: none !important;
-      appearance: none !important;
-      opacity: 1 !important;
-      pointer-events: auto !important;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+      width: 100% !important;
+      height: 40px !important;
+      display: block !important;
+      cursor: text !important;
+      caret-color: #f1f5f9 !important;
     `;
 
     input.addEventListener("focus", () => {
@@ -2119,6 +2323,19 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
       input.style.setProperty('border-color', '#334155', 'important');
       input.style.setProperty('box-shadow', 'none', 'important');
     });
+
+    // Stop events from propagating to page (fixes LinkedIn blocking inputs)
+    const stopPropagation = (e) => {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+    };
+    input.addEventListener("mousedown", stopPropagation, true);
+    input.addEventListener("mouseup", stopPropagation, true);
+    input.addEventListener("click", stopPropagation, true);
+    input.addEventListener("pointerdown", stopPropagation, true);
+    input.addEventListener("pointerup", stopPropagation, true);
+    input.addEventListener("touchstart", stopPropagation, true);
+    input.addEventListener("touchend", stopPropagation, true);
 
     inputs[placeholder] = input;
 
@@ -2133,10 +2350,10 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
   // Buttons
   const buttonGroup = document.createElement("div");
   buttonGroup.style.cssText = `
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-    margin-top: 4px;
+    display: flex !important;
+    gap: 10px !important;
+    justify-content: flex-end !important;
+    margin-top: 4px !important;
   `;
 
   const cancelBtn = document.createElement("button");
@@ -2167,6 +2384,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
 
   cancelBtn.addEventListener("click", () => {
     promptContainer.remove();
+    restoreFocusAfterClose();
   });
 
   const insertBtn = document.createElement("button");
@@ -2221,13 +2439,25 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     // Handle cross-frame insertion
     if (isCrossFrame) {
       sendNoteToChildFrame(finalText);
+
+      // Set isPasting flag to prevent popup from reopening when user pastes
+      state.isPasting = true;
+      setTimeout(() => {
+        state.isPasting = false;
+      }, 3000);
+
       navigator.clipboard.writeText(finalText).then(() => {
-        showToast("Note copied! Paste with Ctrl/Cmd+V if needed.");
+        showToast("Press Ctrl/Cmd+V to paste", "Note copied to clipboard");
       }).catch(() => {
-        showToast("Note copied to clipboard. Paste with Ctrl/Cmd+V");
+        showToast("Press Ctrl/Cmd+V to paste", "Note copied to clipboard");
       });
+      restoreFocusAfterClose();
     } else {
       pasteNoteWithFallback(finalText);
+      // For Google Docs, also restore focus after pasteNoteWithFallback
+      if (isGoogleDocs) {
+        restoreFocusAfterClose();
+      }
     }
   });
 
@@ -2236,6 +2466,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     if (e.key === "Escape") {
       promptContainer.remove();
       document.removeEventListener("keydown", handleEscape);
+      restoreFocusAfterClose();
     }
   };
   document.addEventListener("keydown", handleEscape);
@@ -2589,10 +2820,37 @@ function pasteNote(text) {
   // Update previous value
   state.previousValue = getValue(el);
 
+  // For Word and similar editors, we need to position cursor after inserted text
+  // Save the expected cursor position (current selection should be after inserted text)
+  const selection = window.getSelection();
+  let cursorRange = null;
+  if (selection.rangeCount > 0) {
+    cursorRange = selection.getRangeAt(0).cloneRange();
+  }
+
   // Trigger events
   el.dispatchEvent(new Event("input", { bubbles: true }));
   el.dispatchEvent(new Event("change", { bubbles: true }));
   el.focus();
+
+  // Restore cursor position after focus (focus can reset cursor in Word)
+  // Use setTimeout to ensure Word's internal processing is complete
+  if (cursorRange) {
+    const restoreCursor = () => {
+      try {
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(cursorRange);
+      } catch (e) {
+        // Ignore if range is no longer valid
+      }
+    };
+    // Immediate restore
+    restoreCursor();
+    // Delayed restore to handle Word's async cursor reset
+    setTimeout(restoreCursor, 0);
+    setTimeout(restoreCursor, 50);
+  }
 
   // Reset isPasting flag after a short delay to ensure all events are processed
   setTimeout(() => {
@@ -2652,9 +2910,9 @@ async function insertWithKeyboardSimulation(lines, el) {
   }
 
   // For other paragraph editors: Try inserting as plain text with newlines
+  // execCommand insertText naturally leaves cursor after inserted text
   const textInserted = document.execCommand('insertText', false, text);
   if (textInserted) {
-    moveCursorToEnd(el);
     return;
   }
 
@@ -2670,8 +2928,7 @@ async function insertWithKeyboardSimulation(lines, el) {
       document.execCommand('insertParagraph', false);
     }
   }
-
-  moveCursorToEnd(el);
+  // Cursor should now be after the inserted text
 }
 
 // Insert text via clipboard for Word - copy and prompt user to paste
@@ -2682,6 +2939,12 @@ async function insertViaClipboard(text, el) {
 
     // Focus the element
     el.focus();
+
+    // Set isPasting flag to prevent popup from reopening when user pastes
+    state.isPasting = true;
+    setTimeout(() => {
+      state.isPasting = false;
+    }, 3000);
 
     // Show toast to prompt user to paste
     // Programmatic paste is blocked by browsers for security
