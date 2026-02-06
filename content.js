@@ -22,7 +22,136 @@ const state = {
   isSaving: false, // Prevent button recreation during save
   savedRange: null, // Save selection range for contenteditable insertion
   isPasting: false, // Prevent popup reopen during paste
+  crossFrameSource: null, // Source window for cross-frame popup requests
+  isCrossFramePopup: false, // Whether current popup was triggered from a child frame
 };
+
+// ============================================
+// CROSS-FRAME MESSAGING (for Google Docs/Drive iframes)
+// ============================================
+const BLOCKNOTES_MESSAGE_TYPE = "BLOCKNOTES_CROSS_FRAME";
+
+// Check if we're in an iframe that should delegate popup to parent
+function shouldDelegateToParent() {
+  // Not in an iframe
+  if (window === window.top) return false;
+
+  // Check if we're in a Google Docs text input iframe
+  const isGoogleDocsInputIframe =
+    window.location.hostname.includes("docs.google.com") ||
+    document.body?.classList?.contains("docs-texteventtarget") ||
+    document.querySelector(".docs-texteventtarget");
+
+  // Check if we're in a tiny/hidden iframe (Google Docs uses these for text input)
+  const isTinyIframe = window.innerWidth < 100 || window.innerHeight < 100;
+
+  // Check if parent is Google Docs/Drive
+  let parentIsGoogleDocs = false;
+  try {
+    parentIsGoogleDocs = window.parent.location.hostname.includes("docs.google.com") ||
+                         window.parent.location.hostname.includes("drive.google.com");
+  } catch (e) {
+    // Cross-origin, can't check - but if we're in a small iframe, likely should delegate
+  }
+
+  return isGoogleDocsInputIframe || isTinyIframe || parentIsGoogleDocs;
+}
+
+// Send message to parent frame to show popup
+function requestPopupInParent() {
+  try {
+    window.parent.postMessage({
+      type: BLOCKNOTES_MESSAGE_TYPE,
+      action: "showPopup"
+    }, "*");
+    console.log("BlockNotes: Sent popup request to parent frame");
+    return true;
+  } catch (e) {
+    console.log("BlockNotes: Failed to send message to parent:", e);
+    return false;
+  }
+}
+
+// Handle messages from child frames
+function handleCrossFrameMessage(event) {
+  // Validate message
+  if (!event.data || event.data.type !== BLOCKNOTES_MESSAGE_TYPE) return;
+
+  console.log("BlockNotes: Received cross-frame message:", event.data);
+
+  if (event.data.action === "showPopup") {
+    // Store reference to source window for sending note back
+    state.crossFrameSource = event.source;
+
+    // Load notes and show popup in this (parent) frame
+    chrome.storage.local.get(["settings", "notes"], (data) => {
+      if (chrome.runtime.lastError) {
+        console.log("BlockNotes: Extension context invalidated.");
+        return;
+      }
+      state.notes = data.notes || {};
+      state.lastFocusedElement = null; // No specific element, will center popup
+      state.isCrossFramePopup = true; // Flag to handle note selection differently
+      showPopup();
+    });
+  }
+
+  if (event.data.action === "insertNote") {
+    // Received note text from parent frame - insert it
+    const noteText = event.data.noteText;
+    console.log("BlockNotes: Received note to insert from parent:", noteText);
+
+    // Try to insert into the last focused element
+    if (state.lastFocusedElement) {
+      insertTextIntoElement(state.lastFocusedElement, noteText);
+    } else {
+      // Fallback: try to paste using execCommand
+      document.execCommand("insertText", false, noteText);
+    }
+  }
+}
+
+// Helper to insert text into an element (extracted for cross-frame use)
+function insertTextIntoElement(element, text) {
+  if (!element) return false;
+
+  try {
+    if (element.tagName === "INPUT" || element.tagName === "TEXTAREA") {
+      const start = element.selectionStart || 0;
+      const end = element.selectionEnd || 0;
+      const value = element.value || "";
+      element.value = value.substring(0, start) + text + value.substring(end);
+      element.selectionStart = element.selectionEnd = start + text.length;
+      element.dispatchEvent(new Event("input", { bubbles: true }));
+      return true;
+    } else if (element.isContentEditable) {
+      element.focus();
+      document.execCommand("insertText", false, text);
+      return true;
+    }
+  } catch (e) {
+    console.log("BlockNotes: Error inserting text:", e);
+  }
+  return false;
+}
+
+// Send selected note to child frame
+function sendNoteToChildFrame(noteText) {
+  if (state.crossFrameSource) {
+    try {
+      state.crossFrameSource.postMessage({
+        type: BLOCKNOTES_MESSAGE_TYPE,
+        action: "insertNote",
+        noteText: noteText
+      }, "*");
+      console.log("BlockNotes: Sent note to child frame");
+      return true;
+    } catch (e) {
+      console.log("BlockNotes: Failed to send note to child frame:", e);
+    }
+  }
+  return false;
+}
 
 // ============================================
 // AI AUTO-NAMING
@@ -163,6 +292,9 @@ function init() {
   document.addEventListener("mouseup", handleTextSelection);
   document.addEventListener("mousedown", handleMouseDown);
   chrome.runtime.onMessage.addListener(handleMessage);
+
+  // Listen for cross-frame messages (for Google Docs/Drive iframe popup delegation)
+  window.addEventListener("message", handleCrossFrameMessage);
 
   // Log iframe context for debugging
   const inIframe = window !== window.top;
@@ -504,6 +636,12 @@ function handleInput(event) {
     state.lastSlashDetected = true;
     state.lastFocusedElement = event.target;
 
+    // Check if we should delegate to parent frame (e.g., Google Docs iframe)
+    if (shouldDelegateToParent()) {
+      requestPopupInParent();
+      return;
+    }
+
     setTimeout(() => {
       chrome.storage.local.get(["settings", "notes"], (data) => {
         state.notes = data.notes || {};
@@ -602,6 +740,12 @@ function handleGlobalKeydown(event) {
       state.lastSlashDetected = true;
       state.lastFocusedElement = focusElement;
 
+      // Check if we should delegate to parent frame (e.g., Google Docs iframe)
+      if (shouldDelegateToParent()) {
+        requestPopupInParent();
+        return;
+      }
+
       setTimeout(() => {
         try {
           chrome.storage.local.get(["settings", "notes"], (data) => {
@@ -645,6 +789,13 @@ function handleGlobalKeydown(event) {
 
         state.lastSlashDetected = true;
         state.lastFocusedElement = focusElement;
+
+        // Check if we should delegate to parent frame (e.g., Google Docs iframe)
+        if (shouldDelegateToParent()) {
+          console.log("📋 [GDocs Debug] Delegating popup to parent frame");
+          requestPopupInParent();
+          return;
+        }
 
         setTimeout(() => {
           try {
@@ -743,6 +894,12 @@ function handleGlobalKeydown(event) {
       if (state.isPopupOpen) {
         closePopup();
       } else {
+        // Check if we should delegate to parent frame (e.g., Google Docs iframe)
+        if (shouldDelegateToParent()) {
+          requestPopupInParent();
+          return;
+        }
+
         try {
           chrome.storage.local.get(["settings", "notes"], (data) => {
             if (chrome.runtime.lastError) {
@@ -757,6 +914,11 @@ function handleGlobalKeydown(event) {
         }
       }
     } else {
+      // If not in a valid input but in an iframe, try delegating to parent
+      if (shouldDelegateToParent()) {
+        requestPopupInParent();
+        return;
+      }
       console.log("BlockNotes: No valid text input found. Please click in a text field first.");
     }
     return;
@@ -1346,6 +1508,8 @@ function closePopup() {
   state.isDragging = false;
   state.savedRange = null;
   state.isPasting = false; // Reset just in case
+  state.crossFrameSource = null; // Reset cross-frame state
+  state.isCrossFramePopup = false;
 
   console.log("BlockNotes: closePopup completed, isPopupOpen:", state.isPopupOpen);
 }
@@ -1371,6 +1535,25 @@ function extractPlaceholders(text) {
 
 function handleNoteInsertion(noteText) {
   const placeholders = extractPlaceholders(noteText);
+
+  // Handle cross-frame popup (e.g., Google Docs iframe)
+  if (state.isCrossFramePopup) {
+    if (placeholders.length === 0) {
+      // No placeholders - send note to child frame and copy to clipboard
+      sendNoteToChildFrame(noteText);
+
+      // Also copy to clipboard as fallback
+      navigator.clipboard.writeText(noteText).then(() => {
+        showToast("Note copied! Paste with Ctrl/Cmd+V if needed.");
+      }).catch(() => {
+        showToast("Note copied to clipboard. Paste with Ctrl/Cmd+V");
+      });
+    } else {
+      // Has placeholders - show prompt, then send result to child frame
+      showPlaceholderPrompt(noteText, placeholders, true /* isCrossFrame */);
+    }
+    return;
+  }
 
   if (placeholders.length === 0) {
     // No placeholders, paste directly with clipboard fallback
@@ -1668,7 +1851,7 @@ function getPageContext() {
   return context;
 }
 
-function showPlaceholderPrompt(noteText, placeholders) {
+function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
   // Save the focused element and selection range before showing prompt
   const targetElement = state.lastFocusedElement;
   const savedRange = state.savedRange;
@@ -1677,20 +1860,23 @@ function showPlaceholderPrompt(noteText, placeholders) {
   promptContainer.className = "blocknotes-placeholder-prompt";
   promptContainer.tabIndex = -1; // Make container focusable for focus trapping
   promptContainer.style.cssText = `
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 420px;
-    max-width: 90vw;
-    background: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 16px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-    z-index: 2147483647;
-    font-family: 'Inter', -apple-system, sans-serif;
-    overflow: hidden;
-    animation: placeholderPromptFadeIn 0.2s ease;
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 420px !important;
+    max-width: 90vw !important;
+    background: #1e293b !important;
+    border: 1px solid #334155 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
+    z-index: 2147483647 !important;
+    font-family: 'Inter', -apple-system, sans-serif !important;
+    overflow: hidden !important;
+    animation: placeholderPromptFadeIn 0.2s ease !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   `;
 
   // Prevent focus from escaping to Word/Google Docs
@@ -1791,12 +1977,15 @@ function showPlaceholderPrompt(noteText, placeholders) {
   // Form
   const form = document.createElement("form");
   form.style.cssText = `
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    max-height: 60vh;
-    overflow-y: auto;
+    padding: 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    max-height: 60vh !important;
+    overflow-y: auto !important;
+    background: transparent !important;
+    margin: 0 !important;
+    border: none !important;
   `;
 
   // Auto-fill toggle
@@ -1880,42 +2069,55 @@ function showPlaceholderPrompt(noteText, placeholders) {
   placeholders.forEach((placeholder, index) => {
     const fieldGroup = document.createElement("div");
     fieldGroup.style.cssText = `
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 6px !important;
+      margin: 0 !important;
+      padding: 0 !important;
     `;
 
     const label = document.createElement("label");
     label.textContent = placeholder;
     label.style.cssText = `
-      font-size: 13px;
-      font-weight: 600;
-      color: #f1f5f9;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      color: #f1f5f9 !important;
+      display: block !important;
     `;
 
     const input = document.createElement("input");
     input.type = "text";
     input.placeholder = `Enter ${placeholder}`;
     input.style.cssText = `
-      padding: 10px 12px;
-      border: 1px solid #334155;
-      border-radius: 8px;
-      font-family: 'Inter', -apple-system, sans-serif;
-      font-size: 14px;
-      color: #f1f5f9;
-      background: #334155;
-      outline: none;
-      transition: all 0.2s ease;
+      padding: 10px 12px !important;
+      border: 1px solid #334155 !important;
+      border-radius: 8px !important;
+      font-family: 'Inter', -apple-system, sans-serif !important;
+      font-size: 14px !important;
+      color: #f1f5f9 !important;
+      background: #334155 !important;
+      outline: none !important;
+      transition: all 0.2s ease !important;
+      width: auto !important;
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      box-sizing: border-box !important;
+      -webkit-appearance: none !important;
+      -moz-appearance: none !important;
+      appearance: none !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
     `;
 
     input.addEventListener("focus", () => {
-      input.style.borderColor = "#818cf8";
-      input.style.boxShadow = "0 0 0 3px rgba(129, 140, 248, 0.15)";
+      input.style.setProperty('border-color', '#818cf8', 'important');
+      input.style.setProperty('box-shadow', '0 0 0 3px rgba(129, 140, 248, 0.15)', 'important');
     });
 
     input.addEventListener("blur", () => {
-      input.style.borderColor = "#334155";
-      input.style.boxShadow = "none";
+      input.style.setProperty('border-color', '#334155', 'important');
+      input.style.setProperty('box-shadow', 'none', 'important');
     });
 
     inputs[placeholder] = input;
@@ -1941,26 +2143,26 @@ function showPlaceholderPrompt(noteText, placeholders) {
   cancelBtn.type = "button";
   cancelBtn.textContent = "Cancel";
   cancelBtn.style.cssText = `
-    padding: 8px 16px;
-    border: 1px solid #334155;
-    border-radius: 8px;
-    background: #334155;
-    color: #94a3b8;
-    font-family: 'Inter', -apple-system, sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    padding: 8px 16px !important;
+    border: 1px solid #334155 !important;
+    border-radius: 8px !important;
+    background: #334155 !important;
+    color: #94a3b8 !important;
+    font-family: 'Inter', -apple-system, sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
   `;
 
   cancelBtn.addEventListener("mouseenter", () => {
-    cancelBtn.style.background = "#475569";
-    cancelBtn.style.color = "#f1f5f9";
+    cancelBtn.style.setProperty('background', '#475569', 'important');
+    cancelBtn.style.setProperty('color', '#f1f5f9', 'important');
   });
 
   cancelBtn.addEventListener("mouseleave", () => {
-    cancelBtn.style.background = "#334155";
-    cancelBtn.style.color = "#94a3b8";
+    cancelBtn.style.setProperty('background', '#334155', 'important');
+    cancelBtn.style.setProperty('color', '#94a3b8', 'important');
   });
 
   cancelBtn.addEventListener("click", () => {
@@ -1971,26 +2173,26 @@ function showPlaceholderPrompt(noteText, placeholders) {
   insertBtn.type = "submit";
   insertBtn.textContent = "Insert";
   insertBtn.style.cssText = `
-    padding: 8px 16px;
-    border: 1px solid #818cf8;
-    border-radius: 8px;
-    background: #818cf8;
-    color: white;
-    font-family: 'Inter', -apple-system, sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    padding: 8px 16px !important;
+    border: 1px solid #818cf8 !important;
+    border-radius: 8px !important;
+    background: #818cf8 !important;
+    color: white !important;
+    font-family: 'Inter', -apple-system, sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
   `;
 
   insertBtn.addEventListener("mouseenter", () => {
-    insertBtn.style.background = "#6366f1";
-    insertBtn.style.borderColor = "#6366f1";
+    insertBtn.style.setProperty('background', '#6366f1', 'important');
+    insertBtn.style.setProperty('border-color', '#6366f1', 'important');
   });
 
   insertBtn.addEventListener("mouseleave", () => {
-    insertBtn.style.background = "#818cf8";
-    insertBtn.style.borderColor = "#818cf8";
+    insertBtn.style.setProperty('background', '#818cf8', 'important');
+    insertBtn.style.setProperty('border-color', '#818cf8', 'important');
   });
 
   buttonGroup.appendChild(cancelBtn);
@@ -2015,7 +2217,18 @@ function showPlaceholderPrompt(noteText, placeholders) {
     });
 
     promptContainer.remove();
-    pasteNoteWithFallback(finalText);
+
+    // Handle cross-frame insertion
+    if (isCrossFrame) {
+      sendNoteToChildFrame(finalText);
+      navigator.clipboard.writeText(finalText).then(() => {
+        showToast("Note copied! Paste with Ctrl/Cmd+V if needed.");
+      }).catch(() => {
+        showToast("Note copied to clipboard. Paste with Ctrl/Cmd+V");
+      });
+    } else {
+      pasteNoteWithFallback(finalText);
+    }
   });
 
   // Handle escape key to close
