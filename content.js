@@ -1976,10 +1976,10 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
   const isLinkedIn = window.location.hostname.includes("linkedin.com");
 
   // For LinkedIn, use iframe-based prompt to bypass their aggressive event blocking
-  if (isLinkedIn) {
-    showPlaceholderPromptIframe(noteText, placeholders, isCrossFrame, targetElement, savedRange);
-    return;
-  }
+  // if (isLinkedIn) {
+  //   showPlaceholderPromptIframe(noteText, placeholders, isCrossFrame, targetElement, savedRange);
+  //   return;
+  // }
 
   // Helper to restore focus when closing the prompt
   // Note: Don't dispatch mouse events as they move the cursor to wrong position
