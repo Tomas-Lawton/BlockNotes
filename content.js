@@ -1391,9 +1391,16 @@ function renderResults(list, matches) {
 
     li.addEventListener("mouseenter", () => selectItem(i));
     li.addEventListener("click", () => {
+      // Save state before closePopup clears it
+      const savedElement = state.lastFocusedElement;
+      const savedRange = state.savedRange;
+      // Close popup BEFORE handling note insertion to prevent focus conflicts
+      closePopup();
+      // Restore state for handleNoteInsertion
+      state.lastFocusedElement = savedElement;
+      state.savedRange = savedRange;
       handleNoteInsertion(note.noteText);
       incrementNoteUsage(note.noteIndex);
-      closePopup();
     });
 
     list.appendChild(li);
@@ -1453,9 +1460,18 @@ function handlePopupKeydown(event) {
       event.stopImmediatePropagation(); // Prevent Google Docs from handling
       const matches = filterNotes(extractQuery());
       if (matches[state.selectedIndex]) {
-        handleNoteInsertion(matches[state.selectedIndex].noteText);
-        incrementNoteUsage(matches[state.selectedIndex].noteIndex);
+        const noteText = matches[state.selectedIndex].noteText;
+        const noteIndex = matches[state.selectedIndex].noteIndex;
+        // Save state before closePopup clears it
+        const savedElement = state.lastFocusedElement;
+        const savedRange = state.savedRange;
+        // Close popup BEFORE handling note insertion to prevent focus conflicts
         closePopup();
+        // Restore state for handleNoteInsertion
+        state.lastFocusedElement = savedElement;
+        state.savedRange = savedRange;
+        handleNoteInsertion(noteText);
+        incrementNoteUsage(noteIndex);
       }
       break;
 
@@ -2016,6 +2032,18 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
 
   const promptContainer = document.createElement("div");
   promptContainer.className = "blocknotes-placeholder-prompt";
+
+  // Document-level escape handler (capture phase) for edge cases where focus escapes
+  const handleDocumentEscape = (e) => {
+    if (e.key === 'Escape' && document.body.contains(promptContainer)) {
+      e.preventDefault();
+      e.stopPropagation();
+      promptContainer.remove();
+      document.removeEventListener('keydown', handleDocumentEscape, true);
+      restoreFocusAfterClose();
+    }
+  };
+  document.addEventListener('keydown', handleDocumentEscape, true);
   promptContainer.tabIndex = -1; // Make container focusable for focus trapping
   promptContainer.style.cssText = `
     position: fixed !important;
@@ -2053,13 +2081,22 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     }
   });
 
-  // Stop keyboard events from propagating to the document editor
+  // Handle keyboard events - only stop propagation for keys we handle
+  // Use bubble phase so inputs can receive keystrokes first
   promptContainer.addEventListener('keydown', (e) => {
-    e.stopPropagation();
-    e.stopImmediatePropagation();
+    // Handle Escape key to close the prompt
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      promptContainer.remove();
+      document.removeEventListener('keydown', handleDocumentEscape, true);
+      restoreFocusAfterClose();
+      return;
+    }
 
     // Handle Tab key to trap focus within the prompt
     if (e.key === 'Tab') {
+      e.stopPropagation();
       const focusableElements = promptContainer.querySelectorAll(
         'input:not([disabled]), button:not([disabled])'
       );
@@ -2073,12 +2110,19 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
         e.preventDefault();
         firstElement.focus();
       }
+      return;
     }
-  }, true);
 
-  // Also stop keyup and keypress from propagating
-  promptContainer.addEventListener('keyup', (e) => { e.stopPropagation(); e.stopImmediatePropagation(); }, true);
-  promptContainer.addEventListener('keypress', (e) => { e.stopPropagation(); e.stopImmediatePropagation(); }, true);
+    // Handle Enter to submit form
+    if (e.key === 'Enter') {
+      e.stopPropagation();
+      return;
+    }
+
+    // For other keys (regular typing), stop propagation in bubble phase
+    // to prevent LinkedIn from intercepting, but let the input receive it
+    e.stopPropagation();
+  });
 
   // Stop events from bubbling to LinkedIn's handlers (bubble phase only)
   const stopBubble = (e) => {
@@ -2142,6 +2186,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
 
   closeBtn.addEventListener("click", () => {
     promptContainer.remove();
+    document.removeEventListener('keydown', handleDocumentEscape, true);
     restoreFocusAfterClose();
   });
 
@@ -2357,6 +2402,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
 
   cancelBtn.addEventListener("click", () => {
     promptContainer.remove();
+    document.removeEventListener('keydown', handleDocumentEscape, true);
     restoreFocusAfterClose();
   });
 
@@ -2408,6 +2454,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     });
 
     promptContainer.remove();
+    document.removeEventListener('keydown', handleDocumentEscape, true);
 
     // Handle cross-frame insertion
     if (isCrossFrame) {
@@ -2433,16 +2480,6 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
       }
     }
   }, true);  // Capture phase - fires before window interceptor kills event
-
-  // Handle escape key to close
-  const handleEscape = (e) => {
-    if (e.key === "Escape") {
-      promptContainer.remove();
-      document.removeEventListener("keydown", handleEscape);
-      restoreFocusAfterClose();
-    }
-  };
-  document.addEventListener("keydown", handleEscape);
 
   promptContainer.appendChild(header);
   promptContainer.appendChild(form);
@@ -2481,6 +2518,22 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
           opacity: 1;
           transform: translate(-50%, -50%) scale(1);
         }
+      }
+      .blocknotes-placeholder-prompt input::placeholder {
+        color: #64748b !important;
+        opacity: 1 !important;
+      }
+      .blocknotes-placeholder-prompt input::-webkit-input-placeholder {
+        color: #64748b !important;
+        opacity: 1 !important;
+      }
+      .blocknotes-placeholder-prompt input::-moz-placeholder {
+        color: #64748b !important;
+        opacity: 1 !important;
+      }
+      .blocknotes-placeholder-prompt input:-ms-input-placeholder {
+        color: #64748b !important;
+        opacity: 1 !important;
       }
     `;
     document.head.appendChild(style);
