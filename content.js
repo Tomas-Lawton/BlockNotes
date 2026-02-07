@@ -2080,43 +2080,17 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
   promptContainer.addEventListener('keyup', (e) => { e.stopPropagation(); e.stopImmediatePropagation(); }, true);
   promptContainer.addEventListener('keypress', (e) => { e.stopPropagation(); e.stopImmediatePropagation(); }, true);
 
-  // Stop mouse events from propagating to page (fixes LinkedIn blocking inputs)
-  // Use window-level capture to intercept BEFORE LinkedIn's handlers
-  const isInsidePrompt = (target) => {
-    return promptContainer.contains(target) || target === promptContainer;
-  };
-
-  const windowEventInterceptor = (e) => {
-    if (isInsidePrompt(e.target)) {
-      e.stopImmediatePropagation();
-    }
-  };
-
-  // Add window-level interceptors in capture phase (runs before LinkedIn's handlers)
-  const eventsToIntercept = ['mousedown', 'mouseup', 'click', 'pointerdown', 'pointerup', 'focusin', 'focusout', 'focus', 'blur'];
-  eventsToIntercept.forEach(eventType => {
-    window.addEventListener(eventType, windowEventInterceptor, true);
-  });
-
-  // Clean up window listeners when prompt is removed
-  const originalRemove = promptContainer.remove.bind(promptContainer);
-  promptContainer.remove = () => {
-    eventsToIntercept.forEach(eventType => {
-      window.removeEventListener(eventType, windowEventInterceptor, true);
-    });
-    originalRemove();
-  };
-
-  // Also keep container-level handlers as backup
-  const stopMousePropagation = (e) => {
+  // Stop events from bubbling to LinkedIn's handlers (bubble phase only)
+  const stopBubble = (e) => {
     e.stopPropagation();
-    e.stopImmediatePropagation();
   };
-  promptContainer.addEventListener("mousedown", stopMousePropagation, true);
-  promptContainer.addEventListener("mouseup", stopMousePropagation, true);
-  promptContainer.addEventListener("click", stopMousePropagation, true);
-  promptContainer.addEventListener("pointerdown", stopMousePropagation, true);
-  promptContainer.addEventListener("pointerup", stopMousePropagation, true);
+  promptContainer.addEventListener("mousedown", stopBubble);
+  promptContainer.addEventListener("mouseup", stopBubble);
+  promptContainer.addEventListener("click", stopBubble);
+  promptContainer.addEventListener("pointerdown", stopBubble);
+  promptContainer.addEventListener("pointerup", stopBubble);
+  promptContainer.addEventListener("focusin", stopBubble);
+  promptContainer.addEventListener("focusout", stopBubble);
 
   // Header
   const header = document.createElement("div");
@@ -2325,17 +2299,16 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     });
 
     // Stop events from propagating to page (fixes LinkedIn blocking inputs)
-    const stopPropagation = (e) => {
+    const stopInputPropagation = (e) => {
       e.stopPropagation();
-      e.stopImmediatePropagation();
     };
-    input.addEventListener("mousedown", stopPropagation, true);
-    input.addEventListener("mouseup", stopPropagation, true);
-    input.addEventListener("click", stopPropagation, true);
-    input.addEventListener("pointerdown", stopPropagation, true);
-    input.addEventListener("pointerup", stopPropagation, true);
-    input.addEventListener("touchstart", stopPropagation, true);
-    input.addEventListener("touchend", stopPropagation, true);
+    input.addEventListener("mousedown", stopInputPropagation);
+    input.addEventListener("mouseup", stopInputPropagation);
+    input.addEventListener("click", stopInputPropagation);
+    input.addEventListener("pointerdown", stopInputPropagation);
+    input.addEventListener("pointerup", stopInputPropagation);
+    input.addEventListener("touchstart", stopInputPropagation);
+    input.addEventListener("touchend", stopInputPropagation);
 
     inputs[placeholder] = input;
 
@@ -2417,7 +2390,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
   buttonGroup.appendChild(insertBtn);
   form.appendChild(buttonGroup);
 
-  // Handle form submission
+  // Handle form submission (capture phase - fires before window interceptor kills event)
   form.addEventListener("submit", (e) => {
     e.preventDefault();
 
@@ -2459,7 +2432,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
         restoreFocusAfterClose();
       }
     }
-  });
+  }, true);  // Capture phase - fires before window interceptor kills event
 
   // Handle escape key to close
   const handleEscape = (e) => {
