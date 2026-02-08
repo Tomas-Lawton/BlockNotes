@@ -1638,9 +1638,9 @@ function handleNoteInsertion(noteText) {
 
       // Also copy to clipboard as fallback
       navigator.clipboard.writeText(noteText).then(() => {
-        showToast("Press Ctrl/Cmd+V to paste", "Note copied to clipboard");
+        showToast("BlockNote Failed", "Use Ctrl/Cmd+V to Insert");
       }).catch(() => {
-        showToast("Press Ctrl/Cmd+V to paste", "Note copied to clipboard");
+        showToast("BlockNote Failed", "Use Ctrl/Cmd+V to Insert");
       });
     } else {
       // Has placeholders - show prompt, then send result to child frame
@@ -1714,7 +1714,7 @@ function pasteNoteWithFallback(text) {
       }
     }
 
-    showToast("Press Ctrl/Cmd+V to paste", "Note copied to clipboard");
+    showToast("BlockNote Failed", "Use Ctrl/Cmd+V to Insert");
 
     // Set isPasting flag to prevent popup from reopening when user pastes
     // Keep it active for a few seconds to cover the time user takes to press Ctrl+V
@@ -1984,18 +1984,277 @@ function getPageContext() {
   return context;
 }
 
+// Iframe-based placeholder prompt for sites with aggressive event blocking (LinkedIn)
+function showPlaceholderPromptIframe(noteText, placeholders, isCrossFrame, targetElement, savedRange) {
+  // Helper to restore focus when closing the prompt
+  const restoreFocusAfterClose = () => {
+    if (targetElement) {
+      targetElement.focus();
+    }
+  };
+
+  // Create container for the iframe
+  const container = document.createElement("div");
+  container.style.cssText = `
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: rgba(0, 0, 0, 0.5) !important;
+    z-index: 2147483647 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  `;
+
+  // Build the iframe HTML content
+  const placeholderInputsHTML = placeholders.map((p, i) => `
+    <div style="margin-bottom: 12px;">
+      <label style="display: block; margin-bottom: 6px; font-size: 12px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">
+        ${p}
+      </label>
+      <input
+        type="text"
+        id="input-${i}"
+        data-placeholder="${p}"
+        placeholder="Enter ${p}"
+        autocomplete="off"
+        style="
+          box-sizing: border-box;
+          padding: 10px 12px;
+          border: 1px solid #334155;
+          border-radius: 8px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-size: 14px;
+          font-weight: 400;
+          color: #f1f5f9;
+          background: #334155;
+          outline: none;
+          width: 100%;
+          height: 38px;
+        "
+        onfocus="this.style.borderColor='#818cf8'; this.style.boxShadow='0 0 0 2px rgba(129, 140, 248, 0.2)';"
+        onblur="this.style.borderColor='#334155'; this.style.boxShadow='none';"
+      />
+    </div>
+  `).join('');
+
+  const iframeHTML = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          background: transparent;
+          padding: 0;
+          margin: 0;
+        }
+        .prompt-container {
+          background: #27272a;
+          border: 1px solid #3f3f46;
+          border-radius: 16px;
+          box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+          overflow: hidden;
+          width: 380px;
+          max-width: 90vw;
+        }
+        .header {
+          padding: 10px 14px;
+          border-bottom: 1px solid #3f3f46;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .title {
+          font-size: 11px;
+          font-weight: 700;
+          color: #fafafa;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .close-btn {
+          background: transparent;
+          border: none;
+          font-size: 20px;
+          font-weight: 700;
+          color: #94a3b8;
+          cursor: pointer;
+          width: 20px;
+          height: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 4px;
+        }
+        .close-btn:hover {
+          background: #475569;
+          color: #f1f5f9;
+        }
+        .form {
+          padding: 14px;
+        }
+        .button-group {
+          display: flex;
+          gap: 10px;
+          justify-content: flex-end;
+          margin-top: 4px;
+        }
+        .btn {
+          padding: 8px 16px;
+          border-radius: 8px;
+          font-family: inherit;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+        }
+        .btn-cancel {
+          border: 1px solid #334155;
+          background: #334155;
+          color: #94a3b8;
+        }
+        .btn-cancel:hover {
+          background: #475569;
+          color: #f1f5f9;
+        }
+        .btn-insert {
+          border: 1px solid #818cf8;
+          background: #818cf8;
+          color: white;
+        }
+        .btn-insert:hover {
+          background: #6366f1;
+          border-color: #6366f1;
+        }
+        input::placeholder {
+          color: #64748b;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="prompt-container">
+        <div class="header">
+          <span class="title">Fill in values</span>
+          <button class="close-btn" id="close-btn">&times;</button>
+        </div>
+        <form class="form" id="form">
+          ${placeholderInputsHTML}
+          <div class="button-group">
+            <button type="button" class="btn btn-cancel" id="cancel-btn">Cancel</button>
+            <button type="submit" class="btn btn-insert">Insert</button>
+          </div>
+        </form>
+      </div>
+      <script>
+        const placeholders = ${JSON.stringify(placeholders)};
+
+        document.getElementById('close-btn').addEventListener('click', () => {
+          window.parent.postMessage({ type: 'blocknotes-prompt-close' }, '*');
+        });
+
+        document.getElementById('cancel-btn').addEventListener('click', () => {
+          window.parent.postMessage({ type: 'blocknotes-prompt-close' }, '*');
+        });
+
+        document.getElementById('form').addEventListener('submit', (e) => {
+          e.preventDefault();
+          const values = {};
+          placeholders.forEach((p, i) => {
+            values[p] = document.getElementById('input-' + i).value || '{{' + p + '}}';
+          });
+          window.parent.postMessage({ type: 'blocknotes-prompt-submit', values }, '*');
+        });
+
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            window.parent.postMessage({ type: 'blocknotes-prompt-close' }, '*');
+          }
+        });
+
+        // Focus first input
+        setTimeout(() => document.getElementById('input-0')?.focus(), 100);
+      <\/script>
+    </body>
+    </html>
+  `;
+
+  // Create iframe
+  const iframe = document.createElement("iframe");
+  iframe.style.cssText = `
+    border: none !important;
+    width: 400px !important;
+    height: 400px !important;
+    background: transparent !important;
+  `;
+  iframe.srcdoc = iframeHTML;
+
+  // Listen for messages from iframe
+  const handleMessage = (event) => {
+    if (event.data?.type === 'blocknotes-prompt-close') {
+      container.remove();
+      window.removeEventListener('message', handleMessage);
+      restoreFocusAfterClose();
+    } else if (event.data?.type === 'blocknotes-prompt-submit') {
+      const values = event.data.values;
+      let finalText = noteText;
+
+      placeholders.forEach((placeholder) => {
+        const value = values[placeholder] || `{{${placeholder}}}`;
+        const regex = new RegExp(`\\{\\{${placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\}\\}`, "g");
+        finalText = finalText.replace(regex, value);
+      });
+
+      container.remove();
+      window.removeEventListener('message', handleMessage);
+
+      // Restore state and insert
+      state.lastFocusedElement = targetElement;
+      state.savedRange = savedRange;
+
+      if (isCrossFrame) {
+        sendNoteToChildFrame(finalText);
+        state.isPasting = true;
+        setTimeout(() => { state.isPasting = false; }, 3000);
+        navigator.clipboard.writeText(finalText).then(() => {
+          showToast("BlockNote Failed", "Use Ctrl/Cmd+V to Insert");
+        }).catch(() => {
+          showToast("BlockNote Failed", "Use Ctrl/Cmd+V to Insert");
+        });
+        restoreFocusAfterClose();
+      } else {
+        pasteNoteWithFallback(finalText);
+      }
+    }
+  };
+
+  window.addEventListener('message', handleMessage);
+
+  // Click outside to close
+  container.addEventListener('click', (e) => {
+    if (e.target === container) {
+      container.remove();
+      window.removeEventListener('message', handleMessage);
+      restoreFocusAfterClose();
+    }
+  });
+
+  container.appendChild(iframe);
+  document.body.appendChild(container);
+}
+
 function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
   // Save the focused element and selection range before showing prompt
   const targetElement = state.lastFocusedElement;
   const savedRange = state.savedRange;
   const isGoogleDocs = window.location.hostname.includes("docs.google.com");
-  const isLinkedIn = window.location.hostname.includes("linkedin.com");
 
-  // For LinkedIn, use iframe-based prompt to bypass their aggressive event blocking
-  // if (isLinkedIn) {
-  //   showPlaceholderPromptIframe(noteText, placeholders, isCrossFrame, targetElement, savedRange);
-  //   return;
-  // }
+  // Blur the target element to ensure our prompt can take focus
+  // This prevents aggressive editors from intercepting keyboard events
+  if (targetElement && targetElement.blur) {
+    targetElement.blur();
+  }
 
   // Helper to restore focus when closing the prompt
   // Note: Don't dispatch mouse events as they move the cursor to wrong position
@@ -2032,20 +2291,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
 
   const promptContainer = document.createElement("div");
   promptContainer.className = "blocknotes-placeholder-prompt";
-
-  // Document-level escape handler (capture phase) for edge cases where focus escapes
-  const handleDocumentEscape = (e) => {
-    if (e.key === 'Escape' && document.body.contains(promptContainer)) {
-      e.preventDefault();
-      e.stopPropagation();
-      promptContainer.remove();
-      document.removeEventListener('keydown', handleDocumentEscape, true);
-      restoreFocusAfterClose();
-    }
-  };
-  document.addEventListener('keydown', handleDocumentEscape, true);
   promptContainer.tabIndex = -1; // Make container focusable for focus trapping
-  promptContainer.className = "blocknotes-placeholder-prompt";
   promptContainer.style.cssText = `
     position: fixed !important;
     top: 50% !important;
@@ -2082,21 +2328,93 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     }
   });
 
+  // Handle beforeinput events - LinkedIn's Quill editor listens for these at document level
+  // We need to stop propagation to prevent LinkedIn from intercepting text input
+  const handlePromptBeforeInput = (e) => {
+    if (promptContainer.contains(e.target)) {
+      e.stopImmediatePropagation();
+    }
+  };
+
+  // Handle input events similarly
+  const handlePromptInput = (e) => {
+    if (promptContainer.contains(e.target)) {
+      e.stopImmediatePropagation();
+    }
+  };
+
+  // Document-level escape handler (capture phase) for edge cases where focus escapes
+  const handleDocumentEscape = (e) => {
+    if (e.key === 'Escape' && document.body.contains(promptContainer)) {
+      e.preventDefault();
+      e.stopPropagation();
+      promptContainer.remove();
+      cleanupPromptListeners();
+      restoreFocusAfterClose();
+    }
+  };
+
+  // Declare handlePromptKeydown variable first (will be assigned below)
+  let handlePromptKeydown;
+
+  // Helper to clean up all prompt event listeners
+  const cleanupPromptListeners = () => {
+    window.removeEventListener('keydown', handlePromptKeydown, true);
+    window.removeEventListener('keydown', handleDocumentEscape, true);
+    window.removeEventListener('beforeinput', handlePromptBeforeInput, true);
+    window.removeEventListener('input', handlePromptInput, true);
+    window.removeEventListener('keyup', handlePromptBeforeInput, true);
+    window.removeEventListener('keypress', handlePromptBeforeInput, true);
+  };
+
   // Handle keyboard events using CAPTURE phase to intercept before LinkedIn
   // Use stopImmediatePropagation to prevent any other listeners from seeing the event
-  const handlePromptKeydown = (e) => {
+  handlePromptKeydown = (e) => {
+    // Check if our prompt is visible and has an input focused
+    const activeInput = promptContainer.querySelector('input:focus');
+    const isPromptFocused = promptContainer.contains(document.activeElement);
+
     console.log('[BlockNotes Placeholder] Keydown captured:', {
       key: e.key,
       target: e.target.tagName,
       targetClass: e.target.className,
       inPrompt: promptContainer.contains(e.target),
       activeElement: document.activeElement?.tagName,
-      activeElementClass: document.activeElement?.className,
+      activeInput: !!activeInput,
+      isPromptFocused,
     });
 
-    // Only handle events targeting elements within our prompt
+    // If prompt is focused but target is outside (LinkedIn hijacking), redirect to our input
+    if (isPromptFocused && !promptContainer.contains(e.target)) {
+      console.log('[BlockNotes Placeholder] LinkedIn hijacked event, redirecting to input');
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      // Re-dispatch to the active input
+      if (activeInput && e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+        // For printable characters, insert directly
+        const start = activeInput.selectionStart || 0;
+        const end = activeInput.selectionEnd || 0;
+        activeInput.value = activeInput.value.substring(0, start) + e.key + activeInput.value.substring(end);
+        activeInput.selectionStart = activeInput.selectionEnd = start + 1;
+        activeInput.dispatchEvent(new Event('input', { bubbles: true }));
+      } else if (activeInput && e.key === 'Backspace') {
+        const start = activeInput.selectionStart || 0;
+        const end = activeInput.selectionEnd || 0;
+        if (start === end && start > 0) {
+          activeInput.value = activeInput.value.substring(0, start - 1) + activeInput.value.substring(end);
+          activeInput.selectionStart = activeInput.selectionEnd = start - 1;
+        } else if (start !== end) {
+          activeInput.value = activeInput.value.substring(0, start) + activeInput.value.substring(end);
+          activeInput.selectionStart = activeInput.selectionEnd = start;
+        }
+        activeInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      return;
+    }
+
+    // Normal handling for events targeting our prompt
     if (!promptContainer.contains(e.target)) {
-      console.log('[BlockNotes Placeholder] Event target not in prompt, ignoring');
       return;
     }
 
@@ -2107,8 +2425,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
       e.preventDefault();
       e.stopImmediatePropagation();
       promptContainer.remove();
-      document.removeEventListener('keydown', handlePromptKeydown, true);
-      document.removeEventListener('keydown', handleDocumentEscape, true);
+      cleanupPromptListeners();
       restoreFocusAfterClose();
       return;
     }
@@ -2143,8 +2460,14 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     e.stopImmediatePropagation();
   };
 
-  // Register on document with capture phase (true) to intercept before LinkedIn
-  document.addEventListener('keydown', handlePromptKeydown, true);
+  // Register all event listeners on WINDOW with capture phase
+  // LinkedIn may be listening on window, not document
+  window.addEventListener('keydown', handlePromptKeydown, true);
+  window.addEventListener('keydown', handleDocumentEscape, true);
+  window.addEventListener('beforeinput', handlePromptBeforeInput, true);
+  window.addEventListener('input', handlePromptInput, true);
+  window.addEventListener('keyup', handlePromptBeforeInput, true);
+  window.addEventListener('keypress', handlePromptBeforeInput, true);
 
   // Stop events from bubbling to LinkedIn's handlers (bubble phase only)
   const stopBubble = (e) => {
@@ -2221,8 +2544,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
 
   closeBtn.addEventListener("click", () => {
     promptContainer.remove();
-    document.removeEventListener('keydown', handlePromptKeydown, true);
-    document.removeEventListener('keydown', handleDocumentEscape, true);
+    cleanupPromptListeners();
     restoreFocusAfterClose();
   });
 
@@ -2327,6 +2649,13 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     accent-color: #818cf8 !important;
     margin: 0 !important;
     flex-shrink: 0 !important;
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    -webkit-appearance: checkbox !important;
+    appearance: checkbox !important;
+    position: relative !important;
+    pointer-events: auto !important;
   `;
 
   // Load saved preference
@@ -2411,6 +2740,12 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
       display: block !important;
       cursor: text !important;
       caret-color: #f1f5f9 !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      -webkit-appearance: none !important;
+      appearance: none !important;
+      position: relative !important;
+      pointer-events: auto !important;
     `;
 
     input.addEventListener("focus", () => {
@@ -2439,13 +2774,15 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
 
     input.addEventListener("beforeinput", (e) => {
       console.log('[BlockNotes Placeholder] beforeinput:', { inputType: e.inputType, data: e.data, placeholder });
+      e.stopPropagation();
     });
 
-    // Stop events from propagating to page (fixes LinkedIn blocking inputs)
+    // Stop ALL events from propagating to page (fixes LinkedIn blocking inputs)
     const stopInputPropagation = (e) => {
       console.log('[BlockNotes Placeholder] Stopping propagation:', e.type);
       e.stopPropagation();
     };
+    // Mouse/touch events
     input.addEventListener("mousedown", stopInputPropagation);
     input.addEventListener("mouseup", stopInputPropagation);
     input.addEventListener("click", stopInputPropagation);
@@ -2453,6 +2790,17 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     input.addEventListener("pointerup", stopInputPropagation);
     input.addEventListener("touchstart", stopInputPropagation);
     input.addEventListener("touchend", stopInputPropagation);
+    // Keyboard events - stop LinkedIn from intercepting
+    input.addEventListener("keydown", stopInputPropagation);
+    input.addEventListener("keyup", stopInputPropagation);
+    input.addEventListener("keypress", stopInputPropagation);
+    // Input events
+    input.addEventListener("input", stopInputPropagation);
+    input.addEventListener("textInput", stopInputPropagation); // Legacy but LinkedIn might use it
+    // Composition events (for IME input)
+    input.addEventListener("compositionstart", stopInputPropagation);
+    input.addEventListener("compositionupdate", stopInputPropagation);
+    input.addEventListener("compositionend", stopInputPropagation);
 
     inputs[placeholder] = input;
 
@@ -2501,8 +2849,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
 
   cancelBtn.addEventListener("click", () => {
     promptContainer.remove();
-    document.removeEventListener('keydown', handlePromptKeydown, true);
-    document.removeEventListener('keydown', handleDocumentEscape, true);
+    cleanupPromptListeners();
     restoreFocusAfterClose();
   });
 
@@ -2554,8 +2901,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     });
 
     promptContainer.remove();
-    document.removeEventListener('keydown', handlePromptKeydown, true);
-    document.removeEventListener('keydown', handleDocumentEscape, true);
+    cleanupPromptListeners();
 
     // Handle cross-frame insertion
     if (isCrossFrame) {
@@ -2568,9 +2914,9 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
       }, 3000);
 
       navigator.clipboard.writeText(finalText).then(() => {
-        showToast("Press Ctrl/Cmd+V to paste", "Note copied to clipboard");
+        showToast("BlockNote Failed", "Use Ctrl/Cmd+V to Insert");
       }).catch(() => {
-        showToast("Press Ctrl/Cmd+V to paste", "Note copied to clipboard");
+        showToast("BlockNote Failed", "Use Ctrl/Cmd+V to Insert");
       });
       restoreFocusAfterClose();
     } else {
@@ -3081,7 +3427,7 @@ async function insertViaClipboard(text, el) {
 
     // Show toast to prompt user to paste
     // Programmatic paste is blocked by browsers for security
-    showToast("Press Ctrl/Cmd+V to paste", "Note copied to clipboard");
+    showToast("BlockNote Failed", "Use Ctrl/Cmd+V to Insert");
 
     return true;
   } catch (error) {
