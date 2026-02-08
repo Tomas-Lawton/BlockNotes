@@ -207,7 +207,6 @@ function updateStats() {
 function deleteLocalNote(index) {
   chrome.storage.local.get("notes", (data) => {
     const savedNotes = data.notes || {};
-    console.log("Deleted note: ", index);
     delete savedNotes[index];
 
     chrome.storage.local.set({ notes: savedNotes }, () => {
@@ -388,11 +387,11 @@ async function generateNoteName(noteText, provider, model, apiKey) {
           }
         );
 
-        console.log("Gemini API response status:", response.status);
-        console.log("Gemini API response ok:", response.ok);
+        // console.log("Gemini API response status:", response.status);
+        // console.log("Gemini API response ok:", response.ok);
 
         const data = await response.json();
-        console.log("Gemini full response:", data);
+        // console.log("Gemini full response:", data);
 
         if (!response.ok) {
           throw new Error(`Gemini API error: ${response.status} - ${JSON.stringify(data)}`);
@@ -733,7 +732,7 @@ function makeNote(noteText) {
       if (autonameEnabled && hasAIConfigured) {
         generateNoteName(noteText, provider, model, AIKEY)
           .then((suggestedName) => {
-            console.log(`${provider} response:`, suggestedName);
+            // console.log(`${provider} response:`, suggestedName);
             const headingText = newNoteDOM.querySelector(".note-title");
             if (headingText) {
               headingText.textContent = suggestedName;
