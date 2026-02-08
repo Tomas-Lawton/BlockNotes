@@ -2045,26 +2045,27 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
   };
   document.addEventListener('keydown', handleDocumentEscape, true);
   promptContainer.tabIndex = -1; // Make container focusable for focus trapping
+  promptContainer.className = "blocknotes-placeholder-prompt";
   promptContainer.style.cssText = `
     position: fixed !important;
     top: 50% !important;
     left: 50% !important;
     transform: translate(-50%, -50%) !important;
-    width: 420px !important;
+    width: 380px !important;
     max-width: 90vw !important;
-    background: #1e293b !important;
-    border: 1px solid #334155 !important;
+    background: #27272a !important;
+    border: 1px solid #3f3f46 !important;
     border-radius: 16px !important;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3) !important;
     z-index: 2147483647 !important;
-    font-family: 'Inter', -apple-system, sans-serif !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
     overflow: hidden !important;
     animation: placeholderPromptFadeIn 0.2s ease !important;
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
     pointer-events: auto !important;
-    color: #f1f5f9 !important;
+    color: #fafafa !important;
   `;
 
   // Prevent focus from escaping to Word/Google Docs
@@ -2081,14 +2082,32 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     }
   });
 
-  // Handle keyboard events - only stop propagation for keys we handle
-  // Use bubble phase so inputs can receive keystrokes first
-  promptContainer.addEventListener('keydown', (e) => {
+  // Handle keyboard events using CAPTURE phase to intercept before LinkedIn
+  // Use stopImmediatePropagation to prevent any other listeners from seeing the event
+  const handlePromptKeydown = (e) => {
+    console.log('[BlockNotes Placeholder] Keydown captured:', {
+      key: e.key,
+      target: e.target.tagName,
+      targetClass: e.target.className,
+      inPrompt: promptContainer.contains(e.target),
+      activeElement: document.activeElement?.tagName,
+      activeElementClass: document.activeElement?.className,
+    });
+
+    // Only handle events targeting elements within our prompt
+    if (!promptContainer.contains(e.target)) {
+      console.log('[BlockNotes Placeholder] Event target not in prompt, ignoring');
+      return;
+    }
+
+    console.log('[BlockNotes Placeholder] Stopping propagation for key:', e.key);
+
     // Handle Escape key to close the prompt
     if (e.key === 'Escape') {
       e.preventDefault();
-      e.stopPropagation();
+      e.stopImmediatePropagation();
       promptContainer.remove();
+      document.removeEventListener('keydown', handlePromptKeydown, true);
       document.removeEventListener('keydown', handleDocumentEscape, true);
       restoreFocusAfterClose();
       return;
@@ -2096,7 +2115,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
 
     // Handle Tab key to trap focus within the prompt
     if (e.key === 'Tab') {
-      e.stopPropagation();
+      e.stopImmediatePropagation();
       const focusableElements = promptContainer.querySelectorAll(
         'input:not([disabled]), button:not([disabled])'
       );
@@ -2115,14 +2134,17 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
 
     // Handle Enter to submit form
     if (e.key === 'Enter') {
-      e.stopPropagation();
+      e.stopImmediatePropagation();
       return;
     }
 
-    // For other keys (regular typing), stop propagation in bubble phase
-    // to prevent LinkedIn from intercepting, but let the input receive it
-    e.stopPropagation();
-  });
+    // For all other keys (regular typing), stop LinkedIn from intercepting
+    // but allow the event to continue to the input element
+    e.stopImmediatePropagation();
+  };
+
+  // Register on document with capture phase (true) to intercept before LinkedIn
+  document.addEventListener('keydown', handlePromptKeydown, true);
 
   // Stop events from bubbling to LinkedIn's handlers (bubble phase only)
   const stopBubble = (e) => {
@@ -2136,24 +2158,35 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
   promptContainer.addEventListener("focusin", stopBubble);
   promptContainer.addEventListener("focusout", stopBubble);
 
-  // Header
+  // Header - matching main popup style with drag functionality
   const header = document.createElement("div");
+  header.className = "blocknotes-placeholder-header";
   header.style.cssText = `
-    padding: 16px 20px !important;
-    border-bottom: 1px solid #334155 !important;
+    padding: 10px 14px !important;
+    border-bottom: 1px solid #3f3f46 !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    color: #fafafa !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
     display: flex !important;
-    justify-content: space-between !important;
     align-items: center !important;
-    background: #334155 !important;
+    justify-content: space-between !important;
+    cursor: grab !important;
+    user-select: none !important;
+    background: linear-gradient(135deg, #3f3f46 0%, #27272a 100%) !important;
+    border-radius: 16px 16px 0 0 !important;
   `;
 
-  const title = document.createElement("h3");
+  const title = document.createElement("span");
   title.textContent = "Fill in values";
   title.style.cssText = `
     margin: 0 !important;
-    font-size: 15px !important;
-    font-weight: 600 !important;
-    color: #f1f5f9 !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    color: #fafafa !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
   `;
 
   const closeBtn = document.createElement("button");
@@ -2161,17 +2194,19 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
   closeBtn.style.cssText = `
     background: transparent !important;
     border: none !important;
-    font-size: 24px !important;
+    font-size: 20px !important;
+    font-weight: 700 !important;
     color: #94a3b8 !important;
     cursor: pointer !important;
     padding: 0 !important;
-    width: 24px !important;
-    height: 24px !important;
+    width: 20px !important;
+    height: 20px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     border-radius: 4px !important;
     transition: all 0.15s ease !important;
+    line-height: 1 !important;
   `;
 
   closeBtn.addEventListener("mouseenter", () => {
@@ -2186,8 +2221,48 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
 
   closeBtn.addEventListener("click", () => {
     promptContainer.remove();
+    document.removeEventListener('keydown', handlePromptKeydown, true);
     document.removeEventListener('keydown', handleDocumentEscape, true);
     restoreFocusAfterClose();
+  });
+
+  // Drag functionality for placeholder prompt
+  let isDraggingPrompt = false;
+  let promptDragStartX = 0;
+  let promptDragStartY = 0;
+  let promptStartX = 0;
+  let promptStartY = 0;
+
+  const handlePromptDragMove = (e) => {
+    if (!isDraggingPrompt) return;
+    const deltaX = e.clientX - promptDragStartX;
+    const deltaY = e.clientY - promptDragStartY;
+    promptContainer.style.left = `${promptStartX + deltaX}px`;
+    promptContainer.style.top = `${promptStartY + deltaY}px`;
+    promptContainer.style.transform = 'none';
+  };
+
+  const handlePromptDragEnd = () => {
+    if (!isDraggingPrompt) return;
+    isDraggingPrompt = false;
+    header.style.cursor = 'grab';
+    document.removeEventListener('mousemove', handlePromptDragMove, true);
+    document.removeEventListener('mouseup', handlePromptDragEnd, true);
+  };
+
+  header.addEventListener("mousedown", (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    isDraggingPrompt = true;
+    promptDragStartX = e.clientX;
+    promptDragStartY = e.clientY;
+    const rect = promptContainer.getBoundingClientRect();
+    promptStartX = rect.left;
+    promptStartY = rect.top;
+    header.style.cursor = 'grabbing';
+    document.addEventListener('mousemove', handlePromptDragMove, true);
+    document.addEventListener('mouseup', handlePromptDragEnd, true);
   });
 
   header.appendChild(title);
@@ -2196,17 +2271,17 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
   // Form
   const form = document.createElement("form");
   form.style.cssText = `
-    padding: 20px !important;
+    padding: 16px !important;
     display: flex !important;
     flex-direction: column !important;
-    gap: 16px !important;
+    gap: 14px !important;
     max-height: 60vh !important;
     overflow-y: auto !important;
-    background: transparent !important;
+    background: #1e293b !important;
     margin: 0 !important;
     border: none !important;
     pointer-events: auto !important;
-    font-family: 'Inter', -apple-system, sans-serif !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
   `;
 
   // Auto-fill toggle
@@ -2216,23 +2291,25 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     align-items: center !important;
     justify-content: space-between !important;
     padding: 10px 12px !important;
-    background: rgba(129, 140, 248, 0.1) !important;
-    border: 1px solid rgba(129, 140, 248, 0.2) !important;
+    background: #334155 !important;
+    border: 1px solid #475569 !important;
     border-radius: 8px !important;
-    margin-bottom: 4px !important;
+    margin: 0 !important;
   `;
 
   const autoFillLabel = document.createElement("label");
   autoFillLabel.style.cssText = `
+    margin: 0;
     display: flex !important;
     align-items: center !important;
     gap: 8px !important;
-    font-size: 13px !important;
-    color: #f1f5f9 !important;
+    font-size: 12px !important;
+    color: #e2e8f0 !important;
     cursor: pointer !important;
+    flex: 1 !important;
   `;
   autoFillLabel.innerHTML = `
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M12 2a10 10 0 1 0 10 10H12V2z"></path>
       <path d="M12 12L12 2"></path>
       <path d="M12 12L20 12"></path>
@@ -2244,10 +2321,12 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
   autoFillToggle.type = "checkbox";
   autoFillToggle.id = "blocknotes-autofill-toggle";
   autoFillToggle.style.cssText = `
-    width: 18px !important;
-    height: 18px !important;
+    width: 16px !important;
+    height: 16px !important;
     cursor: pointer !important;
     accent-color: #818cf8 !important;
+    margin: 0 !important;
+    flex-shrink: 0 !important;
   `;
 
   // Load saved preference
@@ -2281,8 +2360,9 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     }
   });
 
-  autoFillLabel.appendChild(autoFillToggle);
+  // Add label and toggle as siblings for proper space-between layout
   autoFillContainer.appendChild(autoFillLabel);
+  autoFillContainer.appendChild(autoFillToggle);
   form.appendChild(autoFillContainer);
 
   const inputs = {};
@@ -2300,11 +2380,11 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     const label = document.createElement("label");
     label.textContent = placeholder;
     label.style.cssText = `
-      font-size: 13px !important;
+      font-size: 12px !important;
       font-weight: 600 !important;
-      color: #f1f5f9 !important;
+      color: #94a3b8 !important;
       display: block !important;
-      font-family: 'Inter', -apple-system, sans-serif !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
     `;
 
     const input = document.createElement("input");
@@ -2319,7 +2399,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
       padding: 10px 12px !important;
       border: 1px solid #334155 !important;
       border-radius: 8px !important;
-      font-family: 'Inter', -apple-system, sans-serif !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
       font-size: 14px !important;
       font-weight: 400 !important;
       color: #f1f5f9 !important;
@@ -2327,24 +2407,43 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
       outline: none !important;
       transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
       width: 100% !important;
-      height: 40px !important;
+      height: 38px !important;
       display: block !important;
       cursor: text !important;
       caret-color: #f1f5f9 !important;
     `;
 
     input.addEventListener("focus", () => {
+      console.log('[BlockNotes Placeholder] Input focused:', placeholder);
       input.style.setProperty('border-color', '#818cf8', 'important');
-      input.style.setProperty('box-shadow', '0 0 0 3px rgba(129, 140, 248, 0.15)', 'important');
+      input.style.setProperty('box-shadow', '0 0 0 2px rgba(129, 140, 248, 0.2)', 'important');
     });
 
     input.addEventListener("blur", () => {
+      console.log('[BlockNotes Placeholder] Input blurred:', placeholder);
       input.style.setProperty('border-color', '#334155', 'important');
       input.style.setProperty('box-shadow', 'none', 'important');
     });
 
+    input.addEventListener("keydown", (e) => {
+      console.log('[BlockNotes Placeholder] Input keydown:', { key: e.key, placeholder });
+    });
+
+    input.addEventListener("keypress", (e) => {
+      console.log('[BlockNotes Placeholder] Input keypress:', { key: e.key, placeholder });
+    });
+
+    input.addEventListener("input", (e) => {
+      console.log('[BlockNotes Placeholder] Input event:', { value: e.target.value, placeholder });
+    });
+
+    input.addEventListener("beforeinput", (e) => {
+      console.log('[BlockNotes Placeholder] beforeinput:', { inputType: e.inputType, data: e.data, placeholder });
+    });
+
     // Stop events from propagating to page (fixes LinkedIn blocking inputs)
     const stopInputPropagation = (e) => {
+      console.log('[BlockNotes Placeholder] Stopping propagation:', e.type);
       e.stopPropagation();
     };
     input.addEventListener("mousedown", stopInputPropagation);
@@ -2383,7 +2482,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     border-radius: 8px !important;
     background: #334155 !important;
     color: #94a3b8 !important;
-    font-family: 'Inter', -apple-system, sans-serif !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
     font-size: 13px !important;
     font-weight: 600 !important;
     cursor: pointer !important;
@@ -2402,6 +2501,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
 
   cancelBtn.addEventListener("click", () => {
     promptContainer.remove();
+    document.removeEventListener('keydown', handlePromptKeydown, true);
     document.removeEventListener('keydown', handleDocumentEscape, true);
     restoreFocusAfterClose();
   });
@@ -2415,7 +2515,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     border-radius: 8px !important;
     background: #818cf8 !important;
     color: white !important;
-    font-family: 'Inter', -apple-system, sans-serif !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
     font-size: 13px !important;
     font-weight: 600 !important;
     cursor: pointer !important;
@@ -2454,6 +2554,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     });
 
     promptContainer.remove();
+    document.removeEventListener('keydown', handlePromptKeydown, true);
     document.removeEventListener('keydown', handleDocumentEscape, true);
 
     // Handle cross-frame insertion
@@ -2489,9 +2590,15 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
   // Use multiple attempts to combat aggressive focus stealing from Word/Docs
   if (firstInput) {
     const focusInput = () => {
+      console.log('[BlockNotes Placeholder] Attempting focus. Current activeElement:',
+        document.activeElement?.tagName, document.activeElement?.className);
       firstInput.focus();
+      console.log('[BlockNotes Placeholder] After focus. activeElement:',
+        document.activeElement?.tagName, document.activeElement?.className,
+        'Is our input?', document.activeElement === firstInput);
       // Ensure the input is actually focused
       if (document.activeElement !== firstInput) {
+        console.log('[BlockNotes Placeholder] Focus was stolen, retrying...');
         firstInput.focus();
       }
     };
@@ -3055,6 +3162,12 @@ function handleMouseDown(event) {
 }
 
 function handleTextSelection() {
+  // Don't process if we were dragging - let drag end cleanly
+  if (state.isDragging) {
+    state.isDragging = false;
+    return;
+  }
+
   // Don't recreate button if currently saving
   if (state.isSaving) {
     return;
