@@ -2998,6 +2998,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     label.textContent = placeholder;
     label.style.cssText = `
       font-size: 12px !important;
+      margin: 0 !important;
       font-weight: 600 !important;
       color: #94a3b8 !important;
       display: block !important;
