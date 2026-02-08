@@ -1,7 +1,10 @@
 import { getDate } from "./src/util.js";
 
 // first time initialisation
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason !== "install") {
+    return;
+  }
   const date = getDate();
 
   // 3 colors for starter notes
