@@ -362,7 +362,7 @@ function loadNotes() {
 }
 
 // AI naming function that supports multiple providers
-async function generateNoteName(noteText, provider, model, apiKey) {
+async function generateNoteName(noteText, provider, model, apiKey, customBaseUrl = "") {
   const prompt = `Suggest a concise and meaningful title for the following note content:\n"${noteText}".
     IT IS VERY CRITICALLY IMPORTANT YOU ANSWER WITH ONLY ONE NAME.
     Do your best to capture what the note actually contains so it is easy to remember what it was about later.
@@ -401,7 +401,7 @@ async function generateNoteName(noteText, provider, model, apiKey) {
           throw new Error(`No candidates in Gemini response: ${JSON.stringify(data)}`);
         }
 
-        return data.candidates[0].content.parts[0].text.trim();
+        return data.candidates[0].content.parts[0].text.trim().replace(/^["'`]+|["'`]+$/g, '');
       }
 
       case "openai": {
@@ -432,7 +432,7 @@ async function generateNoteName(noteText, provider, model, apiKey) {
           throw new Error(`Invalid OpenAI response: ${JSON.stringify(data)}`);
         }
 
-        return data.choices[0].message.content.trim();
+        return data.choices[0].message.content.trim().replace(/^["'`]+|["'`]+$/g, '');
       }
 
       case "anthropic": {
@@ -460,7 +460,7 @@ async function generateNoteName(noteText, provider, model, apiKey) {
           throw new Error(`Invalid Anthropic response: ${JSON.stringify(data)}`);
         }
 
-        return data.content[0].text.trim();
+        return data.content[0].text.trim().replace(/^["'`]+|["'`]+$/g, '');
       }
 
       case "groq": {
@@ -491,7 +491,37 @@ async function generateNoteName(noteText, provider, model, apiKey) {
           throw new Error(`Invalid Groq response: ${JSON.stringify(data)}`);
         }
 
-        return data.choices[0].message.content.trim();
+        return data.choices[0].message.content.trim().replace(/^["'`]+|["'`]+$/g, '');
+      }
+
+      case "custom": {
+        const baseUrl = customBaseUrl.replace(/\/+$/, '');
+        const endpoint = `${baseUrl}/v1/chat/completions`;
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [{ role: "user", content: prompt }],
+            max_tokens: 20,
+            temperature: 0.7,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(`Custom API error: ${response.status} - ${JSON.stringify(data)}`);
+        }
+
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+          throw new Error(`Invalid Custom API response: ${JSON.stringify(data)}`);
+        }
+
+        return data.choices[0].message.content.trim().replace(/^["'`]+|["'`]+$/g, '');
       }
 
       default:
@@ -504,7 +534,7 @@ async function generateNoteName(noteText, provider, model, apiKey) {
 }
 
 // Generic AI call function for reusable AI operations
-async function callAI(prompt, provider, model, apiKey, maxTokens = 500) {
+async function callAI(prompt, provider, model, apiKey, maxTokens = 500, customBaseUrl = "") {
   try {
     switch (provider) {
       case "gemini": {
@@ -591,6 +621,29 @@ async function callAI(prompt, provider, model, apiKey, maxTokens = 500) {
         }
         return data.choices[0].message.content.trim();
       }
+      case "custom": {
+        const baseUrl = customBaseUrl.replace(/\/+$/, '');
+        const endpoint = `${baseUrl}/v1/chat/completions`;
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [{ role: "user", content: prompt }],
+            max_tokens: maxTokens,
+            temperature: 0.7,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          const errorMsg = data.error?.message || `Status ${response.status}`;
+          throw new Error(`Custom API: ${errorMsg}`);
+        }
+        return data.choices[0].message.content.trim();
+      }
       default:
         throw new Error(`Unknown provider: ${provider}`);
     }
@@ -601,7 +654,7 @@ async function callAI(prompt, provider, model, apiKey, maxTokens = 500) {
 }
 
 // Rewrite note in a specific tone
-async function rewriteInTone(noteText, tone, provider, model, apiKey) {
+async function rewriteInTone(noteText, tone, provider, model, apiKey, customBaseUrl = "") {
   const prompt = `Rewrite the following text in a ${tone.toLowerCase()} tone. Keep the same meaning and any {{placeholders}} exactly as they are. Only return the rewritten text, nothing else.
 
 Original text:
@@ -609,11 +662,11 @@ ${noteText}
 
 Rewritten in ${tone.toLowerCase()} tone:`;
 
-  return await callAI(prompt, provider, model, apiKey, 1000);
+  return await callAI(prompt, provider, model, apiKey, 1000, customBaseUrl);
 }
 
 // Generate note from description (AI Template Generator)
-async function generateNoteFromDescription(description, provider, model, apiKey) {
+async function generateNoteFromDescription(description, provider, model, apiKey, customBaseUrl = "") {
   // Detect if this looks like a filled template (reverse template mode)
   const looksLikeFilledText = !description.toLowerCase().includes('template') &&
     !description.toLowerCase().includes('create') &&
@@ -651,7 +704,7 @@ Example for "cold email for job application":
 {"name": "Job Application", "body": "Hi {{hiring manager}},\\n\\nI'm excited to apply for the {{position}} role at {{company}}..."}`;
   }
 
-  const result = await callAI(prompt, provider, model, apiKey, 800);
+  const result = await callAI(prompt, provider, model, apiKey, 800, customBaseUrl);
 
   // Parse JSON response
   try {
@@ -677,6 +730,7 @@ function makeNote(noteText) {
     const AIKEY = settings.key;
     const provider = settings.aiProvider || "groq";
     const model = settings.aiModel || "llama-3.1-8b-instant";
+    const customBaseUrl = settings.customBaseUrl || "";
 
     // Generate unique ID using timestamp + random to prevent collisions
     const timestamp = Date.now();
@@ -730,7 +784,7 @@ function makeNote(noteText) {
       const autonameEnabled = settings.autonameNewNotes !== false;
 
       if (autonameEnabled && hasAIConfigured) {
-        generateNoteName(noteText, provider, model, AIKEY)
+        generateNoteName(noteText, provider, model, AIKEY, customBaseUrl)
           .then((suggestedName) => {
             // console.log(`${provider} response:`, suggestedName);
             const headingText = newNoteDOM.querySelector(".note-title");
@@ -812,7 +866,8 @@ async function handleAICreate(description) {
       description,
       settings.aiProvider || "groq",
       settings.aiModel || "llama-3.1-8b-instant",
-      settings.key
+      settings.key,
+      settings.customBaseUrl || ""
     );
 
     if (result && (result.body || result.content)) {
@@ -902,6 +957,16 @@ function createNote({ noteText, date, noteIndex, displayIndex, noteName, noteCol
   let noteHeading = document.createElement("h3");
   noteHeading.textContent = defaultName;
   noteHeading.classList.add("note-title");
+
+  // Add placeholder indicator badge if note contains {{placeholders}}
+  const hasPlaceholders = /\{\{[^}]+\}\}/.test(noteText);
+  if (hasPlaceholders) {
+    const placeholderBadge = document.createElement("span");
+    placeholderBadge.classList.add("placeholder-badge");
+    placeholderBadge.textContent = "{ }";
+    placeholderBadge.title = "Contains placeholders";
+    noteHeading.appendChild(placeholderBadge);
+  }
 
   const editBtn = document.createElement("div");
   editBtn.classList.add("edit");
@@ -1212,7 +1277,8 @@ function createNote({ noteText, date, noteIndex, displayIndex, noteName, noteCol
               name,
               settings.aiProvider || "groq",
               settings.aiModel || "llama-3.1-8b-instant",
-              settings.key
+              settings.key,
+              settings.customBaseUrl || ""
             );
             input2.value = rewritten;
             autoResize();
@@ -1885,6 +1951,11 @@ function initAIConfiguration() {
       text: "Get API key at console.anthropic.com (paid)",
       free: false,
     },
+    custom: {
+      url: "",
+      text: "Enter your OpenAI-compatible API key",
+      free: false,
+    },
   };
 
   // Model options for each provider - Affordable options listed first
@@ -1930,7 +2001,9 @@ function initAIConfiguration() {
   function updateKeyHelp(provider) {
     const helpEl = document.getElementById("ai-key-help");
     const keyField = aiApiKeyInput?.closest(".ai-form-field");
-    const modelField = aiModelSelect?.closest(".ai-form-field");
+    const modelField = document.getElementById("ai-model-select-field");
+    const baseUrlField = document.getElementById("ai-base-url-field");
+    const customModelField = document.getElementById("ai-custom-model-field");
 
     if (!helpEl) return;
     const info = providerInfo[provider] || providerInfo.groq;
@@ -1939,10 +2012,20 @@ function initAIConfiguration() {
       helpEl.textContent = info.text;
       if (keyField) keyField.style.display = "none";
       if (modelField) modelField.style.display = "none";
+      if (baseUrlField) baseUrlField.style.display = "none";
+      if (customModelField) customModelField.style.display = "none";
+    } else if (provider === "custom") {
+      helpEl.textContent = info.text;
+      if (keyField) keyField.style.display = "";
+      if (modelField) modelField.style.display = "none";
+      if (baseUrlField) baseUrlField.style.display = "";
+      if (customModelField) customModelField.style.display = "";
     } else {
       helpEl.innerHTML = `<a href="${info.url}" target="_blank" rel="noopener">${info.text}</a>`;
       if (keyField) keyField.style.display = "";
       if (modelField) modelField.style.display = "";
+      if (baseUrlField) baseUrlField.style.display = "none";
+      if (customModelField) customModelField.style.display = "none";
     }
   }
 
@@ -1965,6 +2048,16 @@ function initAIConfiguration() {
 
         if (settings.key) {
           aiApiKeyInput.value = settings.key;
+        }
+
+        // Load custom provider settings
+        const baseUrlInput = document.getElementById("ai-base-url-input");
+        const customModelInput = document.getElementById("ai-custom-model-input");
+        if (baseUrlInput && settings.customBaseUrl) {
+          baseUrlInput.value = settings.customBaseUrl;
+        }
+        if (customModelInput && settings.customModel) {
+          customModelInput.value = settings.customModel;
         }
       });
 
@@ -2004,6 +2097,10 @@ function initAIConfiguration() {
       const provider = aiProviderSelect.value;
       const model = aiModelSelect.value;
       const apiKey = aiApiKeyInput.value.trim();
+      const baseUrlInput = document.getElementById("ai-base-url-input");
+      const customModelInput = document.getElementById("ai-custom-model-input");
+      const customBaseUrl = baseUrlInput ? baseUrlInput.value.trim() : "";
+      const customModel = customModelInput ? customModelInput.value.trim() : "";
 
       // Require API key only if provider is not "none"
       if (provider !== "none" && !apiKey) {
@@ -2014,12 +2111,31 @@ function initAIConfiguration() {
         return;
       }
 
+      // Require base URL and model for custom provider
+      if (provider === "custom" && !customBaseUrl) {
+        if (baseUrlInput) {
+          baseUrlInput.style.borderColor = "#ff6b6b";
+          setTimeout(() => { baseUrlInput.style.borderColor = ""; }, 500);
+        }
+        return;
+      }
+
+      if (provider === "custom" && !customModel) {
+        if (customModelInput) {
+          customModelInput.style.borderColor = "#ff6b6b";
+          setTimeout(() => { customModelInput.style.borderColor = ""; }, 500);
+        }
+        return;
+      }
+
       chrome.storage.local.get("settings", (data) => {
         const updatedSettings = {
           ...(data.settings || {}),
           key: provider === "none" ? "" : apiKey,
           aiProvider: provider,
-          aiModel: provider === "none" ? "" : model,
+          aiModel: provider === "none" ? "" : (provider === "custom" ? customModel : model),
+          customBaseUrl: provider === "custom" ? customBaseUrl : (data.settings?.customBaseUrl || ""),
+          customModel: provider === "custom" ? customModel : (data.settings?.customModel || ""),
         };
 
         chrome.storage.local.set({ settings: updatedSettings }, () => {
@@ -2523,6 +2639,22 @@ function loadSettingsPageValues() {
     if (providerSelect) providerSelect.value = settings.aiProvider || "none";
     if (modelInput) modelInput.value = settings.aiModel || "";
     if (keyInput) keyInput.value = settings.key || "";
+
+    // Load custom provider fields
+    const baseUrlInput = document.getElementById("page-ai-base-url");
+    const baseUrlField = document.getElementById("page-ai-base-url-field");
+    const modelField = document.getElementById("page-ai-model-field");
+    if (baseUrlInput) baseUrlInput.value = settings.customBaseUrl || "";
+
+    // Show/hide custom fields based on provider
+    const currentProvider = settings.aiProvider || "none";
+    if (baseUrlField) baseUrlField.style.display = currentProvider === "custom" ? "" : "none";
+    if (modelField && currentProvider === "custom") {
+      // For custom, the model field placeholder should indicate custom model name
+      if (modelInput) modelInput.placeholder = "e.g. openai/gpt-4o";
+    } else {
+      if (modelInput) modelInput.placeholder = "e.g., gpt-4o-mini";
+    }
     if (autofillCheckbox) autofillCheckbox.checked = settings.autoFillPlaceholders || false;
     if (playSoundsCheckbox) playSoundsCheckbox.checked = settings.playSounds !== false;
     // Auto-name settings default to true, user can disable them
@@ -2562,6 +2694,7 @@ function initSettingsPage() {
     "page-ai-provider",
     "page-ai-model",
     "page-ai-key",
+    "page-ai-base-url",
     "page-autofill",
     "page-play-sounds",
     "page-autoname-newnotes",
@@ -2576,6 +2709,18 @@ function initSettingsPage() {
       el.addEventListener("input", markUnsavedChanges);
     }
   });
+
+  // Toggle custom provider fields visibility when provider changes
+  const pageProviderSelect = document.getElementById("page-ai-provider");
+  const pageBaseUrlField = document.getElementById("page-ai-base-url-field");
+  const pageModelInput = document.getElementById("page-ai-model");
+  if (pageProviderSelect) {
+    pageProviderSelect.addEventListener("change", () => {
+      const isCustom = pageProviderSelect.value === "custom";
+      if (pageBaseUrlField) pageBaseUrlField.style.display = isCustom ? "" : "none";
+      if (pageModelInput) pageModelInput.placeholder = isCustom ? "e.g. openai/gpt-4o" : "e.g., gpt-4o-mini";
+    });
+  }
 
   // Update note size value display and apply in real-time
   noteSizeSlider?.addEventListener("input", () => {
@@ -2604,9 +2749,11 @@ function initSettingsPage() {
     chrome.storage.local.get("settings", (data) => {
       const settings = data.settings || {};
 
+      const pageBaseUrlInput = document.getElementById("page-ai-base-url");
       settings.aiProvider = providerSelect?.value || "";
       settings.aiModel = modelInput?.value || "";
       settings.key = keyInput?.value || "";
+      settings.customBaseUrl = pageBaseUrlInput?.value || settings.customBaseUrl || "";
       settings.autoFillPlaceholders = autofillCheckbox?.checked || false;
       settings.playSounds = playSoundsCheckbox?.checked !== false;
       settings.autonameNewNotes = autonameNewNotesCheckbox?.checked || false;

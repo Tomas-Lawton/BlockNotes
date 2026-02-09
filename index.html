@@ -1066,6 +1066,20 @@
         font-weight: 700;
       }
 
+      .placeholder-badge {
+        display: inline-block;
+        font-size: 9px;
+        padding: 1px 5px;
+        margin-left: 6px;
+        background: rgba(0, 0, 0, 0.15);
+        color: #4a4a4a;
+        border-radius: 4px;
+        font-weight: 700;
+        vertical-align: middle;
+        letter-spacing: 1px;
+        line-height: 1.4;
+      }
+
       .note .note-text {
         color: #2d2d2d !important;
       }
@@ -3316,10 +3330,21 @@
                   <option value="gemini">Google Gemini (Free Tier)</option>
                   <option value="openai">OpenAI (Paid)</option>
                   <option value="anthropic">Anthropic Claude (Paid)</option>
+                  <option value="custom">Custom (OpenAI-compatible)</option>
                 </select>
               </div>
 
-              <div class="settings-field">
+              <div class="settings-field" id="page-ai-base-url-field" style="display: none;">
+                <label for="page-ai-base-url">Base URL</label>
+                <input
+                  type="text"
+                  id="page-ai-base-url"
+                  placeholder="https://openrouter.ai/api"
+                />
+                <small style="color: var(--text-secondary); font-size: 0.7rem;">OpenAI-compatible endpoint (OpenRouter, LM Studio, Ollama, etc.)</small>
+              </div>
+
+              <div class="settings-field" id="page-ai-model-field">
                 <label for="page-ai-model">Model</label>
                 <input
                   type="text"
@@ -3528,7 +3553,18 @@
               <option value="gemini">Google Gemini (Free Tier)</option>
               <option value="openai">OpenAI (Paid)</option>
               <option value="anthropic">Anthropic Claude (Paid)</option>
+              <option value="custom">Custom (OpenAI-compatible)</option>
             </select>
+          </div>
+
+          <div class="ai-form-field" id="ai-base-url-field" style="display: none;">
+            <label>Base URL</label>
+            <input
+              type="text"
+              id="ai-base-url-input"
+              placeholder="https://openrouter.ai/api"
+            />
+            <p class="ai-key-help">OpenAI-compatible endpoint (OpenRouter, LM Studio, Ollama, etc.)</p>
           </div>
 
           <div class="ai-form-field">
@@ -3541,11 +3577,20 @@
             <p id="ai-key-help" class="ai-key-help"></p>
           </div>
 
-          <div class="ai-form-field">
+          <div class="ai-form-field" id="ai-model-select-field">
             <label>Model</label>
             <select id="ai-model-select">
               <option value="gpt-5.2">GPT-5.2</option>
             </select>
+          </div>
+
+          <div class="ai-form-field" id="ai-custom-model-field" style="display: none;">
+            <label>Model Name</label>
+            <input
+              type="text"
+              id="ai-custom-model-input"
+              placeholder="e.g. openai/gpt-4o"
+            />
           </div>
 
           <div class="ai-form-actions">

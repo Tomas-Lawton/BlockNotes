@@ -155,13 +155,15 @@ function sendNoteToChildFrame(noteText) {
 // ============================================
 // AI AUTO-NAMING
 // ============================================
-async function generateNoteName(noteText, provider, model, apiKey) {
+async function generateNoteName(noteText, provider, model, apiKey, customBaseUrl = "") {
   const prompt = `Suggest a concise and meaningful title for the following note content:\n"${noteText}".
     IT IS VERY CRITICALLY IMPORTANT YOU ANSWER WITH ONLY ONE NAME.
     Do your best to capture what the note actually contains so it is easy to remember what it was about later.
     Maximum 5 words suggested name.
     If the note text is not understandable just combine a random color with a random animal and a random 2-digit number.
     IT IS VERY CRITICALLY IMPORTANT YOU ANSWER DIRECTLY WITH ONLY ONE NAME.`;
+
+  const stripQuotes = (s) => s.replace(/^["'`]+|["'`]+$/g, '');
 
   try {
     switch (provider) {
@@ -183,7 +185,7 @@ async function generateNoteName(noteText, provider, model, apiKey) {
         if (!response.ok || !data.candidates || !data.candidates[0]) {
           throw new Error("Gemini API error");
         }
-        return data.candidates[0].content.parts[0].text.trim();
+        return stripQuotes(data.candidates[0].content.parts[0].text.trim());
       }
 
       case "openai": {
@@ -207,7 +209,7 @@ async function generateNoteName(noteText, provider, model, apiKey) {
         if (!response.ok || !data.choices || !data.choices[0]) {
           throw new Error("OpenAI API error");
         }
-        return data.choices[0].message.content.trim();
+        return stripQuotes(data.choices[0].message.content.trim());
       }
 
       case "anthropic": {
@@ -229,7 +231,7 @@ async function generateNoteName(noteText, provider, model, apiKey) {
         if (!response.ok || !data.content || !data.content[0]) {
           throw new Error("Anthropic API error");
         }
-        return data.content[0].text.trim();
+        return stripQuotes(data.content[0].text.trim());
       }
 
       case "groq": {
@@ -253,7 +255,30 @@ async function generateNoteName(noteText, provider, model, apiKey) {
         if (!response.ok || !data.choices || !data.choices[0]) {
           throw new Error("Groq API error");
         }
-        return data.choices[0].message.content.trim();
+        return stripQuotes(data.choices[0].message.content.trim());
+      }
+
+      case "custom": {
+        const baseUrl = customBaseUrl.replace(/\/+$/, '');
+        const endpoint = `${baseUrl}/v1/chat/completions`;
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [{ role: "user", content: prompt }],
+            max_tokens: 20,
+            temperature: 0.7,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok || !data.choices || !data.choices[0]) {
+          throw new Error("Custom API error");
+        }
+        return stripQuotes(data.choices[0].message.content.trim());
       }
 
       default:
@@ -785,6 +810,7 @@ function showPopup() {
     user-select: none;
     background: linear-gradient(135deg, #3f3f46 0%, #27272a 100%);
     border-radius: 14px 14px 0 0;
+    flex-shrink: 0;
   `;
 
   const title = document.createElement("span");
@@ -831,7 +857,97 @@ function showPopup() {
   header.appendChild(title);
   header.appendChild(closeBtn);
 
+  // Filter and sort toggle bar
+  const filterBar = document.createElement("div");
+  filterBar.style.cssText = `
+    padding: 6px 10px;
+    background: #27272a;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border-bottom: 1px solid #3f3f46;
+    flex-shrink: 0;
+  `;
+
+  // Initialize popup filter/sort state
+  state.popupFilterType = "both";
+  state.popupSortType = null;
+
+  function createToggleBtn(label, group, value) {
+    const btn = document.createElement("button");
+    btn.textContent = label;
+    btn.dataset.group = group;
+    btn.dataset.value = value;
+    btn.style.cssText = `
+      padding: 3px 8px;
+      border: 1px solid #3f3f46;
+      border-radius: 6px;
+      background: transparent;
+      color: #94a3b8;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    `;
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isActive = btn.dataset.active === "true";
+      // Deactivate all buttons in the same group
+      filterBar.querySelectorAll(`button[data-group="${group}"]`).forEach((b) => {
+        b.dataset.active = "false";
+        b.style.background = "transparent";
+        b.style.color = "#94a3b8";
+        b.style.borderColor = "#3f3f46";
+      });
+      if (!isActive) {
+        btn.dataset.active = "true";
+        btn.style.background = "#334155";
+        btn.style.color = "#f1f5f9";
+        btn.style.borderColor = "#818cf8";
+        if (group === "filter") state.popupFilterType = value;
+        if (group === "sort") state.popupSortType = value;
+      } else {
+        if (group === "filter") state.popupFilterType = "both";
+        if (group === "sort") state.popupSortType = null;
+      }
+      updateResults();
+    });
+    btn.addEventListener("mouseenter", () => {
+      if (btn.dataset.active !== "true") {
+        btn.style.background = "#334155";
+        btn.style.color = "#e2e8f0";
+      }
+    });
+    btn.addEventListener("mouseleave", () => {
+      if (btn.dataset.active !== "true") {
+        btn.style.background = "transparent";
+        btn.style.color = "#94a3b8";
+      }
+    });
+    return btn;
+  }
+
+  // Filter buttons
+  filterBar.appendChild(createToggleBtn("Name", "filter", "name"));
+  filterBar.appendChild(createToggleBtn("Content", "filter", "content"));
+
+  // Divider
+  const divider = document.createElement("span");
+  divider.style.cssText = `
+    width: 1px;
+    height: 14px;
+    background: #3f3f46;
+    margin: 0 2px;
+  `;
+  filterBar.appendChild(divider);
+
+  // Sort buttons
+  filterBar.appendChild(createToggleBtn("Newest", "sort", "newest"));
+  filterBar.appendChild(createToggleBtn("A-Z", "sort", "alpha"));
+
   popup.appendChild(header);
+  popup.appendChild(filterBar);
   popup.appendChild(list);
   document.body.appendChild(popup);
 
@@ -875,7 +991,7 @@ function showPopup() {
 function getPopupStyles(hasTarget = true) {
   const viewportHeight = window.innerHeight;
   const viewportWidth = window.innerWidth;
-  const maxHeight = 320;
+  const maxHeight = 400;
   const width = Math.min(380, viewportWidth - 40);
   const spacing = 8;
 
@@ -894,7 +1010,8 @@ function getPopupStyles(hasTarget = true) {
       top: 50% !important;
       left: 50% !important;
       transform: translate(-50%, -50%) !important;
-      display: block !important;
+      display: flex !important;
+      flex-direction: column !important;
       visibility: visible !important;
       opacity: 1 !important;
     `;
@@ -971,7 +1088,8 @@ function getPopupStyles(hasTarget = true) {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
     overflow: hidden !important;
     transition: opacity 0.15s ease !important;
-    display: block !important;
+    display: flex !important;
+    flex-direction: column !important;
     visibility: visible !important;
     opacity: 1 !important;
   `;
@@ -982,7 +1100,8 @@ function getListStyles() {
     margin: 0;
     padding: 3px;
     list-style: none;
-    max-height: 280px;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
   `;
 }
@@ -1009,12 +1128,14 @@ function updateResults() {
   if (!list) return;
 
   const query = extractQuery();
-  const matches = filterNotes(query);
+  const filterType = state.popupFilterType || "both";
+  const sortType = state.popupSortType || null;
+  const matches = filterNotes(query, filterType, sortType);
 
   // Reset selected index to 0 when search query changes
   state.selectedIndex = 0;
 
-  renderResults(list, matches);
+  renderResults(list, matches, query);
 
   // Auto-scroll to the first result if there are any matches
   if (matches.length > 0 && list.children.length > 0) {
@@ -1033,7 +1154,7 @@ function extractQuery() {
   return "";
 }
 
-function filterNotes(query) {
+function filterNotes(query, filterType = "both", sortType = null) {
   // Normalize query for better matching
   const normalizedQuery = query.toLowerCase();
 
@@ -1044,10 +1165,22 @@ function filterNotes(query) {
       const name = (note.noteName || "").toLowerCase();
       const text = (note.noteText || "").toLowerCase();
 
-      // Match if query appears anywhere in name or text
+      // Match based on filter type
+      if (filterType === "name") return name.includes(normalizedQuery);
+      if (filterType === "content") return text.includes(normalizedQuery);
       return name.includes(normalizedQuery) || text.includes(normalizedQuery);
     })
     .sort((a, b) => {
+      // If an explicit sort is selected, use it
+      if (sortType === "newest") {
+        return (b.timestamp || 0) - (a.timestamp || 0);
+      }
+      if (sortType === "alpha") {
+        const aName = (a.noteName || "").toLowerCase();
+        const bName = (b.noteName || "").toLowerCase();
+        return aName.localeCompare(bName);
+      }
+
       // When no search query, sort by usage count (most used first)
       if (!normalizedQuery) {
         const aUsage = a.usageCount || 0;
@@ -1083,7 +1216,7 @@ function filterNotes(query) {
     });
 }
 
-function renderResults(list, matches) {
+function renderResults(list, matches, query = "") {
   list.innerHTML = "";
 
   if (matches.length === 0) {
@@ -1099,30 +1232,74 @@ function renderResults(list, matches) {
     return;
   }
 
-  matches.forEach((note, i) => {
+  const hasQuery = query.trim().length > 0;
+
+  // Split into recently used and other notes when no search query
+  let recentlyUsed = [];
+  let otherNotes = [];
+  if (!hasQuery) {
+    recentlyUsed = matches.filter((n) => (n.usageCount || 0) > 0);
+    otherNotes = matches.filter((n) => (n.usageCount || 0) === 0);
+  }
+
+  // Helper to create a section header
+  function addSectionHeader(text) {
+    const header = document.createElement("li");
+    header.textContent = text;
+    header.style.cssText = `
+      padding: 6px 10px 4px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      pointer-events: none;
+      user-select: none;
+    `;
+    header.dataset.sectionHeader = "true";
+    list.appendChild(header);
+  }
+
+  // Track selectable item index (excludes headers)
+  let selectableIndex = 0;
+
+  function addNoteItem(note) {
     const li = document.createElement("li");
     li.className = "blocknotes-item";
 
     const name = note.noteName || `Note ${(note.displayIndex || 0) + 1}`;
-    const preview =
+    const rawPreview =
       note.noteText.length > 50
         ? note.noteText.substring(0, 50) + "..."
         : note.noteText;
     const noteColor = note.noteColor || "#c4b5fd";
+    const placeholders = extractPlaceholders(note.noteText);
+    const hasPlaceholders = placeholders.length > 0;
+
+    // Build placeholder badge
+    const placeholderBadge = hasPlaceholders
+      ? `<span style="font-size: 9px; padding: 1px 5px; background: #334155; color: #818cf8; border-radius: 4px; font-weight: 600; margin-left: 4px; flex-shrink: 0;">{ }</span>`
+      : "";
+
+    // Highlight {{placeholders}} in preview text
+    const previewHtml = escapeHtml(rawPreview).replace(
+      /\{\{([^}]+)\}\}/g,
+      '<span style="color: #818cf8; font-weight: 600;">{{$1}}</span>'
+    );
 
     li.innerHTML = `
       <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">
         <span style="width: 10px; height: 10px; border-radius: 3px; background: ${noteColor}; flex-shrink: 0;"></span>
         <span style="font-weight: 600; font-size: 13px; color: #f1f5f9;">${escapeHtml(name)}</span>
+        ${placeholderBadge}
       </div>
-      <div style="font-size: 12px; color: #94a3b8; line-height: 1.3; margin-left: 18px;">${escapeHtml(
-        preview,
-      )}</div>
+      <div style="font-size: 12px; color: #94a3b8; line-height: 1.3; margin-left: 18px;">${previewHtml}</div>
     `;
 
-    li.style.cssText = getItemStyles(i === state.selectedIndex);
+    const currentIndex = selectableIndex;
+    li.style.cssText = getItemStyles(currentIndex === state.selectedIndex);
 
-    li.addEventListener("mouseenter", () => selectItem(i));
+    li.addEventListener("mouseenter", () => selectItem(currentIndex));
     li.addEventListener("click", () => {
       // Save state before closePopup clears it
       const savedElement = state.lastFocusedElement;
@@ -1137,10 +1314,23 @@ function renderResults(list, matches) {
     });
 
     list.appendChild(li);
-  });
+    selectableIndex++;
+  }
+
+  if (!hasQuery && recentlyUsed.length > 0) {
+    addSectionHeader("Recently Used");
+    recentlyUsed.forEach(addNoteItem);
+    if (otherNotes.length > 0) {
+      addSectionHeader("All Notes");
+      otherNotes.forEach(addNoteItem);
+    }
+  } else {
+    matches.forEach(addNoteItem);
+  }
 
   // Ensure selected is visible
-  const selected = list.children[state.selectedIndex];
+  const selectableItems = list.querySelectorAll(".blocknotes-item");
+  const selected = selectableItems[state.selectedIndex];
   if (selected) {
     selected.scrollIntoView({ block: "nearest" });
   }
@@ -1163,7 +1353,8 @@ function selectItem(index) {
   const list = state.popupContainer?.querySelector(".blocknotes-list");
   if (!list) return;
 
-  Array.from(list.children).forEach((item, i) => {
+  const selectableItems = list.querySelectorAll(".blocknotes-item");
+  selectableItems.forEach((item, i) => {
     item.style.cssText = getItemStyles(i === index);
   });
 }
@@ -1172,8 +1363,8 @@ function handlePopupKeydown(event) {
   if (!state.popupContainer) return;
 
   const list = state.popupContainer.querySelector(".blocknotes-list");
-  const items = list?.children || [];
-  const max = items.length - 1;
+  const selectableItems = list?.querySelectorAll(".blocknotes-item") || [];
+  const max = selectableItems.length - 1;
 
   switch (event.key) {
     case "ArrowDown":
@@ -1191,7 +1382,10 @@ function handlePopupKeydown(event) {
     case "Enter":
       event.preventDefault();
       event.stopImmediatePropagation(); // Prevent Google Docs from handling
-      const matches = filterNotes(extractQuery());
+      const enterQuery = extractQuery();
+      const enterFilterType = state.popupFilterType || "both";
+      const enterSortType = state.popupSortType || null;
+      const matches = filterNotes(enterQuery, enterFilterType, enterSortType);
       if (matches[state.selectedIndex]) {
         const noteText = matches[state.selectedIndex].noteText;
         const noteIndex = matches[state.selectedIndex].noteIndex;
@@ -1295,6 +1489,8 @@ function closePopup() {
   state.isPasting = false; // Reset just in case
   state.crossFrameSource = null; // Reset cross-frame state
   state.isCrossFramePopup = false;
+  state.popupFilterType = "both"; // Reset filter state
+  state.popupSortType = null; // Reset sort state
 
   // Restore focus after state cleanup
   if (isGoogleDocs) {
@@ -3468,13 +3664,14 @@ function saveSelectedText() {
       const provider = settings.aiProvider;
       const model = settings.aiModel;
       const apiKey = settings.key;
+      const customBaseUrl = settings.customBaseUrl || "";
       const hasAIConfigured =
         provider && provider !== "none" && model && apiKey;
       // Defaults to true, user can disable it
       const autonameEnabled = settings.autonameSelection !== false;
 
       if (autonameEnabled && hasAIConfigured) {
-        generateNoteName(text, provider, model, apiKey)
+        generateNoteName(text, provider, model, apiKey, customBaseUrl)
           .then((suggestedName) => {
             // Update the note name in storage
             chrome.storage.local.get("notes", (data) => {
