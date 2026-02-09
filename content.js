@@ -781,6 +781,7 @@ function showPopup() {
 
   state.isPopupOpen = true;
   state.selectedIndex = 0;
+  state.popupSearchQuery = ""; // Track typed query for Google Docs (no input events)
 
   // Create popup
   const popup = document.createElement("div");
@@ -1144,6 +1145,14 @@ function updateResults() {
 }
 
 function extractQuery() {
+  // For Google Docs, use tracked query since standard input events don't fire
+  if (
+    window.location.hostname.includes("docs.google.com") &&
+    state.popupSearchQuery !== undefined
+  ) {
+    return state.popupSearchQuery;
+  }
+
   const value = getValue(state.lastFocusedElement);
   const lastSlash = value.lastIndexOf("/");
 
@@ -1409,6 +1418,17 @@ function handlePopupKeydown(event) {
       break;
 
     case "Backspace":
+      // For Google Docs: update tracked search query
+      if (window.location.hostname.includes("docs.google.com")) {
+        if (state.popupSearchQuery && state.popupSearchQuery.length > 0) {
+          state.popupSearchQuery = state.popupSearchQuery.slice(0, -1);
+          updateResults();
+        } else {
+          // Query is empty, backspace would delete the "/" — close popup
+          closePopup();
+        }
+        break;
+      }
       // Check if backspace would delete the "/" character
       const el = state.lastFocusedElement;
       if (el) {
@@ -1439,6 +1459,25 @@ function handlePopupKeydown(event) {
         }
       }
       break;
+
+    default:
+      // For Google Docs: track typed characters for search since input events don't fire
+      if (
+        event.key.length === 1 &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        window.location.hostname.includes("docs.google.com")
+      ) {
+        if (event.key === " " && state.popupSearchQuery === "") {
+          // Space right after "/" — close popup
+          closePopup();
+        } else {
+          state.popupSearchQuery += event.key;
+          updateResults();
+        }
+      }
+      break;
   }
 }
 
@@ -1446,6 +1485,8 @@ function handleClickOutside(event) {
   if (!state.popupContainer) return;
   if (state.popupContainer.contains(event.target)) return;
   if (state.lastFocusedElement === event.target) return;
+  // Don't close when clicking back into the editor area (e.g. Google Docs child elements)
+  if (state.lastFocusedElement?.contains?.(event.target)) return;
   closePopup();
 }
 
@@ -1491,6 +1532,7 @@ function closePopup() {
   state.isCrossFramePopup = false;
   state.popupFilterType = "both"; // Reset filter state
   state.popupSortType = null; // Reset sort state
+  state.popupSearchQuery = ""; // Reset search query
 
   // Restore focus after state cleanup
   if (isGoogleDocs) {
