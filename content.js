@@ -2776,8 +2776,33 @@ function pasteNote(text) {
       nativeSetter.call(el, content);
     }
 
-    // Move cursor to end
-    el.setSelectionRange(content.length, content.length);
+    // Move cursor to end of inserted text
+    const cursorPosition = content.length;
+    el.setSelectionRange(cursorPosition, cursorPosition);
+
+    // Dispatch events and restore cursor for INPUT/TEXTAREA
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+    el.focus();
+
+    // Restore cursor position after focus (React re-renders may reset it)
+    const restoreInputCursor = () => {
+      try {
+        el.setSelectionRange(cursorPosition, cursorPosition);
+      } catch (e) {
+        // Ignore if element is no longer valid
+      }
+    };
+    restoreInputCursor();
+    setTimeout(restoreInputCursor, 0);
+    setTimeout(restoreInputCursor, 50);
+
+    // Update previous value and reset isPasting flag
+    state.previousValue = getValue(el);
+    setTimeout(() => {
+      state.isPasting = false;
+    }, 100);
+    return;
   } else if (el.isContentEditable) {
     // For contenteditable, we need to handle newlines properly
     // Detect the editor type by structure, not by URL
