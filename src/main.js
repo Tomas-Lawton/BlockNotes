@@ -291,6 +291,7 @@ function saveLocalNote(noteData) {
     // Set default noteName if not present
     const noteCount = Object.keys(savedNotes).length;
     noteData.noteName = noteData.noteName || `Note ${noteCount + 1}`;
+    noteData.noteName = noteData.noteName.slice(0, 100);
 
     // Store the note
     savedNotes[key] = noteData;
@@ -787,17 +788,18 @@ function makeNote(noteText) {
         generateNoteName(noteText, provider, model, AIKEY, customBaseUrl)
           .then((suggestedName) => {
             // console.log(`${provider} response:`, suggestedName);
+            const truncatedName = suggestedName.slice(0, 100);
             const headingText = newNoteDOM.querySelector(".note-title");
             if (headingText) {
-              headingText.textContent = suggestedName;
+              headingText.textContent = truncatedName;
             }
-            noteData.noteName = suggestedName;
+            noteData.noteName = truncatedName;
 
             // Update storage with AI-generated name
             chrome.storage.local.get("notes", (data) => {
               const notes = data.notes || {};
               if (notes[uniqueId]) {
-                notes[uniqueId].noteName = suggestedName;
+                notes[uniqueId].noteName = truncatedName;
                 chrome.storage.local.set({ notes: notes });
               }
             });
@@ -878,7 +880,7 @@ async function handleAICreate(description) {
 
       const noteData = {
         noteText: result.body || result.content,
-        noteName: result.name || result.title || "AI Generated Note",
+        noteName: (result.name || result.title || "AI Generated Note").slice(0, 100),
         date: getDate(),
         timestamp,
         noteIndex: uniqueId,
@@ -1172,6 +1174,7 @@ function createNote({ noteText, date, noteIndex, displayIndex, noteName, noteCol
     const input1 = document.createElement("input");
     input1.type = "text";
     input1.value = noteHeading.textContent;
+    input1.maxLength = 100;
     input1.classList.add("note-title");
     noteHeading.replaceWith(input1);
 
@@ -1329,7 +1332,7 @@ function createNote({ noteText, date, noteIndex, displayIndex, noteName, noteCol
 
   // Accept button
   acceptBtn.addEventListener("click", () => {
-    originalTitle = noteHeading.value;
+    originalTitle = noteHeading.value.slice(0, 100);
     originalText = noteTextDiv.value;
 
     const newHeading = document.createElement("h3");

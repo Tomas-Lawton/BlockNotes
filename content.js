@@ -3756,7 +3756,7 @@ function saveSelectedText() {
             chrome.storage.local.get("notes", (data) => {
               const notes = data.notes || {};
               if (notes[uniqueId]) {
-                notes[uniqueId].noteName = suggestedName;
+                notes[uniqueId].noteName = suggestedName.slice(0, 100);
                 chrome.storage.local.set({ notes: notes }, () => {
                   // Notify main page to refresh
                   chrome.runtime.sendMessage({ action: "noteSaved" });
