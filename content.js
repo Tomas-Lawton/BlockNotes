@@ -3529,10 +3529,10 @@ function showQuickSaveButton() {
     align-items: center !important;
     gap: 6px !important;
     padding: 10px 14px !important;
-    background: rgba(15, 23, 42, 0.47) !important;
-    color: #a1a1aa !important;
+    background: rgba(15, 23, 42, 0.65) !important;
+    color: #fff !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    border-radius: 16px !important;
+    border-radius: 4px !important;
     font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
     font-size: 12px !important;
     font-weight: 500 !important;
@@ -3565,12 +3565,12 @@ function showQuickSaveButton() {
 
   button.addEventListener("mouseenter", () => {
     if (button.dataset.saved !== "true") {
-      button.style.setProperty(
-        "background",
-        "rgba(15, 23, 42, 0.65)",
-        "important",
-      );
-      button.style.setProperty("color", "#fafafa", "important");
+      // button.style.setProperty(
+      //   "background",
+      //   "rgba(15, 23, 42, 0.65)",
+      //   "important",
+      // );
+      // button.style.setProperty("color", "#fafafa", "important");
       button.style.setProperty("border-color", "rgba(255, 255, 255, 0.2)", "important");
       button.style.setProperty("transform", "translateY(-1px)", "important");
       button.style.setProperty(
@@ -3583,12 +3583,12 @@ function showQuickSaveButton() {
 
   button.addEventListener("mouseleave", () => {
     if (button.dataset.saved !== "true") {
-      button.style.setProperty(
-        "background",
-        "rgba(15, 23, 42, 0.47)",
-        "important",
-      );
-      button.style.setProperty("color", "#a1a1aa", "important");
+      // button.style.setProperty(
+      //   "background",
+      //   "rgba(15, 23, 42, 0.47)",
+      //   "important",
+      // );
+      // button.style.setProperty("color", "#a1a1aa", "important");
       button.style.setProperty("border-color", "rgba(255, 255, 255, 0.12)", "important");
       button.style.setProperty("transform", "translateY(0)", "important");
       button.style.setProperty(
