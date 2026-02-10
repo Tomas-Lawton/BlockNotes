@@ -325,7 +325,6 @@ function init() {
 
   // Listen for cross-frame messages (for Google Docs/Drive iframe popup delegation)
   window.addEventListener("message", handleCrossFrameMessage);
-
 }
 
 // ============================================
@@ -1023,11 +1022,11 @@ function getPopupPosition(hasTarget = true, element = null) {
   // If no target element, center the popup
   if (!hasTarget) {
     return {
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%)",
       width: width,
-      maxHeight: maxHeight
+      maxHeight: maxHeight,
     };
   }
 
@@ -1092,18 +1091,18 @@ function getPopupPosition(hasTarget = true, element = null) {
     top: `${top}px`,
     left: `${left}px`,
     width: width,
-    maxHeight: maxHeight
+    maxHeight: maxHeight,
   };
 }
 
 function getPopupStyles(hasTarget = true) {
   const position = getPopupPosition(hasTarget, state.lastFocusedElement);
-  
+
   return `
     position: fixed !important;
     top: ${position.top} !important;
     left: ${position.left} !important;
-    ${position.transform ? `transform: ${position.transform} !important;` : ''}
+    ${position.transform ? `transform: ${position.transform} !important;` : ""}
     width: ${position.width}px !important;
     max-height: ${position.maxHeight}px !important;
     background: #0f172a78 !important;
@@ -1123,7 +1122,6 @@ function getPopupStyles(hasTarget = true) {
     -webkit-backdrop-filter: blur(20px) saturate(140%) !important;
   `;
 }
-
 
 function getListStyles() {
   return `
@@ -1189,7 +1187,9 @@ function filterNotes(query, filterType = "both", sortType = null) {
     .filter((note) => {
       if (!normalizedQuery) return true;
 
-      const name = (note.noteName || `Note ${(note.displayIndex || 0) + 1}`).toLowerCase();
+      const name = (
+        note.noteName || `Note ${(note.displayIndex || 0) + 1}`
+      ).toLowerCase();
       const text = (note.noteText || "").toLowerCase();
 
       // Match based on filter type
@@ -1203,8 +1203,12 @@ function filterNotes(query, filterType = "both", sortType = null) {
         return (b.timestamp || 0) - (a.timestamp || 0);
       }
       if (sortType === "alpha") {
-        const aName = (a.noteName || `Note ${(a.displayIndex || 0) + 1}`).toLowerCase();
-        const bName = (b.noteName || `Note ${(b.displayIndex || 0) + 1}`).toLowerCase();
+        const aName = (
+          a.noteName || `Note ${(a.displayIndex || 0) + 1}`
+        ).toLowerCase();
+        const bName = (
+          b.noteName || `Note ${(b.displayIndex || 0) + 1}`
+        ).toLowerCase();
         return aName.localeCompare(bName);
       }
 
@@ -1219,8 +1223,12 @@ function filterNotes(query, filterType = "both", sortType = null) {
         return bLastUsed - aLastUsed;
       }
 
-      const aName = (a.noteName || `Note ${(a.displayIndex || 0) + 1}`).toLowerCase();
-      const bName = (b.noteName || `Note ${(b.displayIndex || 0) + 1}`).toLowerCase();
+      const aName = (
+        a.noteName || `Note ${(a.displayIndex || 0) + 1}`
+      ).toLowerCase();
+      const bName = (
+        b.noteName || `Note ${(b.displayIndex || 0) + 1}`
+      ).toLowerCase();
 
       // Prioritize exact name matches
       const aNameMatch = aName.includes(normalizedQuery);
@@ -2277,15 +2285,17 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
   const promptContainer = document.createElement("div");
   promptContainer.className = "blocknotes-placeholder-prompt";
   promptContainer.tabIndex = -1; // Make container focusable for focus trapping
-   // Use saved popup position (preserves drag location) or fall back to computed position
+  // Use saved popup position (preserves drag location) or fall back to computed position
   const hasTarget = !!state.lastFocusedElement;
-  const position = state.lastPopupPosition || getPopupPosition(hasTarget, state.lastFocusedElement);
-  
+  const position =
+    state.lastPopupPosition ||
+    getPopupPosition(hasTarget, state.lastFocusedElement);
+
   promptContainer.style.cssText = `
     position: fixed !important;
     top: ${position.top} !important;
     left: ${position.left} !important;
-    ${position.transform ? `transform: ${position.transform} !important;` : ''}
+    ${position.transform ? `transform: ${position.transform} !important;` : ""}
     width: ${position.width}px !important;
     max-width: 90vw !important;
     max-height: ${position.maxHeight}px !important;
@@ -2952,11 +2962,11 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
       @keyframes placeholderPromptFadeIn {
         from {
           opacity: 0;
-          ${position.transform ? `transform: ${position.transform} scale(0.95);` : 'transform: scale(0.95);'}
+          ${position.transform ? `transform: ${position.transform} scale(0.95);` : "transform: scale(0.95);"}
         }
         to {
           opacity: 1;
-          ${position.transform ? `transform: ${position.transform} scale(1);` : 'transform: scale(1);'}
+          ${position.transform ? `transform: ${position.transform} scale(1);` : "transform: scale(1);"}
         }
       }
       .blocknotes-placeholder-prompt input::placeholder {
@@ -3571,7 +3581,11 @@ function showQuickSaveButton() {
       //   "important",
       // );
       // button.style.setProperty("color", "#fafafa", "important");
-      button.style.setProperty("border-color", "rgba(255, 255, 255, 0.2)", "important");
+      button.style.setProperty(
+        "border-color",
+        "rgba(255, 255, 255, 0.2)",
+        "important",
+      );
       button.style.setProperty("transform", "translateY(-1px)", "important");
       button.style.setProperty(
         "box-shadow",
@@ -3589,7 +3603,11 @@ function showQuickSaveButton() {
       //   "important",
       // );
       // button.style.setProperty("color", "#a1a1aa", "important");
-      button.style.setProperty("border-color", "rgba(255, 255, 255, 0.12)", "important");
+      button.style.setProperty(
+        "border-color",
+        "rgba(255, 255, 255, 0.12)",
+        "important",
+      );
       button.style.setProperty("transform", "translateY(0)", "important");
       button.style.setProperty(
         "box-shadow",
@@ -3621,29 +3639,16 @@ function showQuickSaveButton() {
       <span>Noted!</span>
     `;
 
-      // Completely rebuild the style attribute to ensure it applies
-      button.style.cssText = `
-      position: fixed !important;
-      bottom: 24px !important;
-      right: 24px !important;
-      display: flex !important;
-      align-items: center !important;
-      gap: 6px !important;
-      padding: 10px 14px !important;
-      background: rgba(129, 140, 248, 0.95) !important;
-      color: #ffffff !important;
-      border: 1px solid rgba(129, 140, 248, 0.95) !important;
-      border-radius: 8px !important;
-      font-family: 'Inter', -apple-system, sans-serif !important;
-      font-size: 12px !important;
-      font-weight: 500 !important;
-      cursor: default !important;
-      z-index: 2147483647 !important;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
-      transition: none !important;
-      pointer-events: none !important;
-      backdrop-filter: blur(8px) !important;
-    `;
+      button.style.setProperty(
+        "background",
+        "rgba(59, 239, 140, 0.95)",
+        "important",
+      );
+      button.style.setProperty(
+        "box-shadow",
+        "0 4px 12px rgba(0, 0, 0, 0.4)",
+        "important",
+      );
 
       button.dataset.saved = "true";
 
