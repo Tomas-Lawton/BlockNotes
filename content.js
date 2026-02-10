@@ -843,13 +843,13 @@ function showPopup() {
   `;
 
   closeBtn.addEventListener("mouseenter", () => {
-    closeBtn.style.background = "#475569";
-    closeBtn.style.color = "#f1f5f9";
+    // closeBtn.style.background = "#475569";
+    closeBtn.style.color = "#fff";
   });
 
   closeBtn.addEventListener("mouseleave", () => {
-    closeBtn.style.background = "transparent";
-    closeBtn.style.color = "#94a3b8";
+    // closeBtn.style.background = "transparent";
+    closeBtn.style.color = "#fff";
   });
 
   closeBtn.addEventListener("click", (e) => {
@@ -1109,7 +1109,7 @@ function getPopupStyles(hasTarget = true) {
 function getListStyles() {
   return `
     margin: 0;
-    padding: 3px;
+    padding: 6px;
     list-style: none;
     flex: 1;
     min-height: 0;
@@ -1120,17 +1120,6 @@ function getListStyles() {
 // ============================================
 // UPDATE & RENDER
 // ============================================
-// function updateResults() {
-//   if (!state.popupContainer) return;
-
-//   const list = state.popupContainer.querySelector(".blocknotes-list");
-//   if (!list) return;
-
-//   const query = extractQuery();
-//   const matches = filterNotes(query);
-
-//   renderResults(list, matches);
-// }
 
 function updateResults() {
   if (!state.popupContainer) return;
@@ -1240,12 +1229,12 @@ function renderResults(list, matches, query = "") {
 
   if (matches.length === 0) {
     const empty = document.createElement("li");
-    empty.textContent = "No notes found";
+    empty.textContent = "No matching notes";
     empty.style.cssText = `
-      padding: 16px;
+      padding: 12px;
       text-align: center;
       color: #fff;
-      font-size: 14px;
+      font-size: 12px;
     `;
     list.appendChild(empty);
     return;
@@ -1358,12 +1347,12 @@ function renderResults(list, matches, query = "") {
 function getItemStyles(isSelected) {
   return `
     padding: 7px 10px;
-    margin: 1px 0;
-    border-radius: 6px;
+    margin: 2px 0;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.15s ease;
-    background: ${isSelected ? "#20324b" : "#20324b87"};
-    border-left: ${isSelected ? "2px solid #818cf8" : "2px solid transparent"};
+    background: ${isSelected ? "#20324b" : "#20324bd4"};
+    border-left: ${isSelected ? "4px solid #818cf8" : "2px solid transparent"};
   `; // #1e293b
 }
 
@@ -2038,7 +2027,7 @@ function showPlaceholderPromptIframe(
           border: none;
           font-size: 20px;
           font-weight: 700;
-          color: #b8c9e2;
+          color: #fff;
           cursor: pointer;
           width: 20px;
           height: 20px;
@@ -2492,7 +2481,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     border: none !important;
     font-size: 20px !important;
     font-weight: 700 !important;
-    color: #20324b !important;
+    color: #ffffff !important;
     cursor: pointer !important;
     padding: 0 !important;
     width: 20px !important;
@@ -2506,13 +2495,13 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
   `;
 
   closeBtn.addEventListener("mouseenter", () => {
-    closeBtn.style.setProperty("background", "#475569", "important");
+    // closeBtn.style.setProperty("background", "#475569", "important");
     closeBtn.style.setProperty("color", "#f1f5f9", "important");
   });
 
   closeBtn.addEventListener("mouseleave", () => {
-    closeBtn.style.setProperty("background", "transparent", "important");
-    closeBtn.style.setProperty("color", "#94a3b8", "important");
+    // closeBtn.style.setProperty("background", "transparent", "important");
+    closeBtn.style.setProperty("color", "#ffffff", "important");
   });
 
   closeBtn.addEventListener("click", () => {
