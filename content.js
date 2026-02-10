@@ -3641,7 +3641,7 @@ function showQuickSaveButton() {
 
       button.style.setProperty(
         "background",
-        "rgba(59, 239, 140, 0.95)",
+        "rgba(21, 116, 63, 0.95)",
         "important",
       );
       button.style.setProperty(
