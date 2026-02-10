@@ -3529,11 +3529,11 @@ function showQuickSaveButton() {
     align-items: center !important;
     gap: 6px !important;
     padding: 10px 14px !important;
-    background: rgba(39, 39, 42, 0.95) !important;
+    background: rgba(15, 23, 42, 0.47) !important;
     color: #a1a1aa !important;
-    border: 1px solid #3f3f46 !important;
-    border-radius: 8px !important;
-    font-family: 'Inter', -apple-system, sans-serif !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 16px !important;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
     font-size: 12px !important;
     font-weight: 500 !important;
     cursor: pointer !important;
@@ -3541,7 +3541,8 @@ function showQuickSaveButton() {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
     transition: all 0.2s ease !important;
     animation: quickSaveFadeIn 0.2s ease !important;
-    backdrop-filter: blur(8px) !important;
+    backdrop-filter: blur(20px) saturate(140%) !important;
+    isolation: isolate !important;
   `;
 
   // Prevent mousedown from interfering with click
@@ -3566,11 +3567,11 @@ function showQuickSaveButton() {
     if (button.dataset.saved !== "true") {
       button.style.setProperty(
         "background",
-        "rgba(63, 63, 70, 0.98)",
+        "rgba(15, 23, 42, 0.65)",
         "important",
       );
       button.style.setProperty("color", "#fafafa", "important");
-      button.style.setProperty("border-color", "#52525b", "important");
+      button.style.setProperty("border-color", "rgba(255, 255, 255, 0.2)", "important");
       button.style.setProperty("transform", "translateY(-1px)", "important");
       button.style.setProperty(
         "box-shadow",
@@ -3584,11 +3585,11 @@ function showQuickSaveButton() {
     if (button.dataset.saved !== "true") {
       button.style.setProperty(
         "background",
-        "rgba(39, 39, 42, 0.95)",
+        "rgba(15, 23, 42, 0.47)",
         "important",
       );
       button.style.setProperty("color", "#a1a1aa", "important");
-      button.style.setProperty("border-color", "#3f3f46", "important");
+      button.style.setProperty("border-color", "rgba(255, 255, 255, 0.12)", "important");
       button.style.setProperty("transform", "translateY(0)", "important");
       button.style.setProperty(
         "box-shadow",
