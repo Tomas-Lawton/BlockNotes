@@ -155,7 +155,13 @@ function sendNoteToChildFrame(noteText) {
 // ============================================
 // AI AUTO-NAMING
 // ============================================
-async function generateNoteName(noteText, provider, model, apiKey, customBaseUrl = "") {
+async function generateNoteName(
+  noteText,
+  provider,
+  model,
+  apiKey,
+  customBaseUrl = "",
+) {
   const prompt = `Suggest a concise and meaningful title for the following note content:\n"${noteText}".
     IT IS VERY CRITICALLY IMPORTANT YOU ANSWER WITH ONLY ONE NAME.
     Do your best to capture what the note actually contains so it is easy to remember what it was about later.
@@ -163,7 +169,7 @@ async function generateNoteName(noteText, provider, model, apiKey, customBaseUrl
     If the note text is not understandable just combine a random color with a random animal and a random 2-digit number.
     IT IS VERY CRITICALLY IMPORTANT YOU ANSWER DIRECTLY WITH ONLY ONE NAME.`;
 
-  const stripQuotes = (s) => s.replace(/^["'`]+|["'`]+$/g, '');
+  const stripQuotes = (s) => s.replace(/^["'`]+|["'`]+$/g, "");
 
   try {
     switch (provider) {
@@ -259,7 +265,7 @@ async function generateNoteName(noteText, provider, model, apiKey, customBaseUrl
       }
 
       case "custom": {
-        const baseUrl = customBaseUrl.replace(/\/+$/, '');
+        const baseUrl = customBaseUrl.replace(/\/+$/, "");
         const endpoint = `${baseUrl}/v1/chat/completions`;
         const response = await fetch(endpoint, {
           method: "POST",
@@ -324,7 +330,6 @@ function init() {
   const isSandboxed =
     document.origin === "null" || document.origin === "about:blank";
   const isGoogleDocs = window.location.hostname.includes("docs.google.com");
-
 }
 
 // ============================================
@@ -417,10 +422,11 @@ function isInput(el) {
 // ============================================
 function handleInput(event) {
   // Better paste detection: check inputType property for modern browsers
-  const isPasteEvent = event.inputType === 'insertFromPaste' || 
-                       event.inputType === 'insertReplacementText' ||
-                       event.data?.length > 1; // Multiple characters pasted at once
-  
+  const isPasteEvent =
+    event.inputType === "insertFromPaste" ||
+    event.inputType === "insertReplacementText" ||
+    event.data?.length > 1; // Multiple characters pasted at once
+
   // Ignore input events during paste OR if it's a paste event
   if (state.isPasting || isPasteEvent) return;
 
@@ -798,7 +804,7 @@ function showPopup() {
   header.className = "blocknotes-header";
   header.style.cssText = `
     padding: 10px 14px;
-    border-bottom: 1px solid #3f3f46;
+    border-bottom: 1px solid #ffffff1f;
     font-size: 11px;
     font-weight: 700;
     color: #fafafa;
@@ -809,7 +815,6 @@ function showPopup() {
     justify-content: space-between;
     cursor: grab;
     user-select: none;
-    background: linear-gradient(135deg, #3f3f46 0%, #27272a 100%);
     border-radius: 14px 14px 0 0;
     flex-shrink: 0;
   `;
@@ -824,7 +829,7 @@ function showPopup() {
     border: none;
     font-size: 20px;
     font-weight: 700;
-    color: #94a3b8;
+    color: #fff;
     cursor: pointer;
     padding: 0;
     width: 20px;
@@ -862,11 +867,10 @@ function showPopup() {
   const filterBar = document.createElement("div");
   filterBar.style.cssText = `
     padding: 6px 10px;
-    background: #27272a;
     display: flex;
     align-items: center;
     gap: 4px;
-    border-bottom: 1px solid #3f3f46;
+    border-bottom: 1px solid #ffffff1f;
     flex-shrink: 0;
   `;
 
@@ -883,8 +887,8 @@ function showPopup() {
       padding: 3px 8px;
       border: 1px solid #3f3f46;
       border-radius: 6px;
-      background: transparent;
-      color: #94a3b8;
+      background: #334155;
+      color: #b8c9e2;
       font-size: 10px;
       font-weight: 600;
       cursor: pointer;
@@ -895,16 +899,18 @@ function showPopup() {
       e.stopPropagation();
       const isActive = btn.dataset.active === "true";
       // Deactivate all buttons in the same group
-      filterBar.querySelectorAll(`button[data-group="${group}"]`).forEach((b) => {
-        b.dataset.active = "false";
-        b.style.background = "transparent";
-        b.style.color = "#94a3b8";
-        b.style.borderColor = "#3f3f46";
-      });
+      filterBar
+        .querySelectorAll(`button[data-group="${group}"]`)
+        .forEach((b) => {
+          b.dataset.active = "false";
+          b.style.background = "#334155";
+          b.style.color = "#b8c9e2";
+          b.style.borderColor = "#3f3f46";
+        });
       if (!isActive) {
         btn.dataset.active = "true";
         btn.style.background = "#334155";
-        btn.style.color = "#f1f5f9";
+        btn.style.color = "#b8c9e2";
         btn.style.borderColor = "#818cf8";
         if (group === "filter") state.popupFilterType = value;
         if (group === "sort") state.popupSortType = value;
@@ -916,14 +922,14 @@ function showPopup() {
     });
     btn.addEventListener("mouseenter", () => {
       if (btn.dataset.active !== "true") {
-        btn.style.background = "#334155";
+        btn.style.background = "#364b69ff";
         btn.style.color = "#e2e8f0";
       }
     });
     btn.addEventListener("mouseleave", () => {
       if (btn.dataset.active !== "true") {
-        btn.style.background = "transparent";
-        btn.style.color = "#94a3b8";
+        btn.style.background = "#334155";
+        btn.style.color = "#b8c9e2";
       }
     });
     return btn;
@@ -1001,20 +1007,23 @@ function getPopupStyles(hasTarget = true) {
     return `
       position: fixed !important;
       width: ${width}px !important;
-      background: #27272a !important;
-      border: 1px solid #3f3f46 !important;
-      border-radius: 16px !important;
-      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-      z-index: 2147483647 !important;
-      overflow: hidden !important;
       max-height: ${maxHeight}px !important;
       top: 50% !important;
       left: 50% !important;
       transform: translate(-50%, -50%) !important;
+      background: rgba(119, 119, 119, 0.41) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      border-radius: 16px !important;
+      box-shadow: rgba(0, 0, 0, 0.18) 0px 8px 32px !important;
+      z-index: 2147483647 !important;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+      transition: opacity 0.15s !important;
+      overflow: hidden !important;
       display: flex !important;
       flex-direction: column !important;
       visibility: visible !important;
       opacity: 1 !important;
+      backdrop-filter: blur(20px) saturate(140%) !important;
     `;
   }
 
@@ -1081,18 +1090,20 @@ function getPopupStyles(hasTarget = true) {
     left: ${left}px !important;
     width: ${width}px !important;
     max-height: ${maxHeight}px !important;
-    background: #27272a !important;
-    border: 1px solid #3f3f46 !important;
+    background: rgba(0, 0, 0, 0.32) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
     border-radius: 16px !important;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 13px 27px -5px, rgba(0, 0, 0, 0.3) 0px 8px 16px -8px;
     z-index: 2147483647 !important;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
     overflow: hidden !important;
     transition: opacity 0.15s ease !important;
     display: flex !important;
     flex-direction: column !important;
     visibility: visible !important;
     opacity: 1 !important;
+    backdrop-filter: blur(20px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(140%) !important;
   `;
 }
 
@@ -1234,7 +1245,7 @@ function renderResults(list, matches, query = "") {
     empty.style.cssText = `
       padding: 16px;
       text-align: center;
-      color: #94a3b8;
+      color: #b8c9e2;
       font-size: 14px;
     `;
     list.appendChild(empty);
@@ -1259,7 +1270,7 @@ function renderResults(list, matches, query = "") {
       padding: 6px 10px 4px;
       font-size: 10px;
       font-weight: 700;
-      color: #64748b;
+      color: #fff;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       pointer-events: none;
@@ -1293,7 +1304,7 @@ function renderResults(list, matches, query = "") {
     // Highlight {{placeholders}} in preview text
     const previewHtml = escapeHtml(rawPreview).replace(
       /\{\{([^}]+)\}\}/g,
-      '<span style="color: #818cf8; font-weight: 600;">{{$1}}</span>'
+      '<span style="color: #818cf8; font-weight: 600;">{{$1}}</span>',
     );
 
     li.innerHTML = `
@@ -1302,7 +1313,7 @@ function renderResults(list, matches, query = "") {
         <span style="font-weight: 600; font-size: 13px; color: #f1f5f9;">${escapeHtml(name)}</span>
         ${placeholderBadge}
       </div>
-      <div style="font-size: 12px; color: #94a3b8; line-height: 1.3; margin-left: 18px;">${previewHtml}</div>
+      <div style="font-size: 12px; color: #b8c9e2; line-height: 1.3; margin-left: 18px;">${previewHtml}</div>
     `;
 
     const currentIndex = selectableIndex;
@@ -1352,9 +1363,9 @@ function getItemStyles(isSelected) {
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.15s ease;
-    background: ${isSelected ? "#334155" : "#1e293b"};
+    background: ${isSelected ? "#20324b" : "#20324b87"};
     border-left: ${isSelected ? "2px solid #818cf8" : "2px solid transparent"};
-  `;
+  `; // #1e293b
 }
 
 function selectItem(index) {
@@ -1957,7 +1968,7 @@ function showPlaceholderPromptIframe(
     .map(
       (p, i) => `
     <div style="margin-bottom: 12px;">
-      <label style="display: block; margin-bottom: 6px; font-size: 12px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">
+      <label style="display: block; margin-bottom: 6px; font-size: 12px; font-weight: 600; color: #b8c9e2; text-transform: uppercase; letter-spacing: 0.5px;">
         ${p}
       </label>
       <input
@@ -2002,7 +2013,7 @@ function showPlaceholderPromptIframe(
         }
         .prompt-container {
           background: #27272a;
-          border: 1px solid #3f3f46;
+          border: 1px solid #ffffff1f;
           border-radius: 16px;
           box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
           overflow: hidden;
@@ -2011,7 +2022,7 @@ function showPlaceholderPromptIframe(
         }
         .header {
           padding: 10px 14px;
-          border-bottom: 1px solid #3f3f46;
+          border-bottom: 1px solid #ffffff1f;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -2024,11 +2035,11 @@ function showPlaceholderPromptIframe(
           letter-spacing: 0.5px;
         }
         .close-btn {
-          background: transparent;
+          background: #fff;
           border: none;
           font-size: 20px;
           font-weight: 700;
-          color: #94a3b8;
+          color: #b8c9e2;
           cursor: pointer;
           width: 20px;
           height: 20px;
@@ -2061,7 +2072,7 @@ function showPlaceholderPromptIframe(
         .btn-cancel {
           border: 1px solid #334155;
           background: #334155;
-          color: #94a3b8;
+          color: #b8c9e2;
         }
         .btn-cancel:hover {
           background: #475569;
@@ -2256,24 +2267,28 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
   promptContainer.tabIndex = -1; // Make container focusable for focus trapping
   promptContainer.style.cssText = `
     position: fixed !important;
+
     top: 50% !important;
     left: 50% !important;
     transform: translate(-50%, -50%) !important;
     width: 380px !important;
     max-width: 90vw !important;
-    background: #27272a !important;
-    border: 1px solid #3f3f46 !important;
-    border-radius: 16px !important;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3) !important;
     z-index: 2147483647 !important;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-    overflow: hidden !important;
     animation: placeholderPromptFadeIn 0.2s ease !important;
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
     pointer-events: auto !important;
     color: #fafafa !important;
+
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 13px 27px -5px, rgba(0, 0, 0, 0.3) 0px 8px 16px -8px;
+    background: rgba(0, 0, 0, 0.32) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 16px !important;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+    overflow: hidden !important;
+    transition: opacity 0.15s !important;
+    backdrop-filter: blur(20px) saturate(140%) !important;
   `;
 
   // Prevent focus from escaping to Word/Google Docs
@@ -2442,7 +2457,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
   header.className = "blocknotes-placeholder-header";
   header.style.cssText = `
     padding: 10px 14px !important;
-    border-bottom: 1px solid #3f3f46 !important;
+    border-bottom: 1px solid #ffffff1f !important;
     font-size: 11px !important;
     font-weight: 700 !important;
     color: #fafafa !important;
@@ -2453,7 +2468,6 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     justify-content: space-between !important;
     cursor: grab !important;
     user-select: none !important;
-    background: linear-gradient(135deg, #3f3f46 0%, #27272a 100%) !important;
     border-radius: 16px 16px 0 0 !important;
   `;
 
@@ -2475,7 +2489,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     border: none !important;
     font-size: 20px !important;
     font-weight: 700 !important;
-    color: #94a3b8 !important;
+    color: #20324b !important;
     cursor: pointer !important;
     padding: 0 !important;
     width: 20px !important;
@@ -2555,7 +2569,6 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     gap: 14px !important;
     max-height: 60vh !important;
     overflow-y: auto !important;
-    background: #1e293b !important;
     margin: 0 !important;
     border: none !important;
     pointer-events: auto !important;
@@ -2668,7 +2681,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
       font-size: 12px !important;
       margin: 0 !important;
       font-weight: 600 !important;
-      color: #94a3b8 !important;
+      color: #f1f5f9 !important;
       display: block !important;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
     `;
@@ -2774,7 +2787,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     border: 1px solid #334155 !important;
     border-radius: 8px !important;
     background: #334155 !important;
-    color: #94a3b8 !important;
+    color: #b8c9e2 !important;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
     font-size: 13px !important;
     font-weight: 600 !important;
@@ -3402,18 +3415,18 @@ function addStyles() {
       width: 8px;
     }
     .blocknotes-list::-webkit-scrollbar-track {
-      background: #27272a;
+      background: #ffffff00;
       border-radius: 4px;
     }
     .blocknotes-list::-webkit-scrollbar-thumb {
-      background: #52525b;
+      background: #404040c7;
       border-radius: 4px;
     }
     .blocknotes-list::-webkit-scrollbar-thumb:hover {
-      background: #71717a;
+      background: #404040db;
     }
     .blocknotes-item:hover {
-      background: #3f3f46 !important;
+      background: #20324b !important;
     }
     .blocknotes-header:active {
       cursor: grabbing !important;
