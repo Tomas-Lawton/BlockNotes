@@ -25,6 +25,7 @@ const state = {
   crossFrameSource: null, // Source window for cross-frame popup requests
   isCrossFramePopup: false, // Whether current popup was triggered from a child frame
   googleDocsIframeDoc: null, // Reference to Google Docs iframe document for cleanup
+  lastPopupPosition: null, // Saved popup position (including after drag) for placeholder prompt
 };
 
 // ============================================
@@ -325,11 +326,6 @@ function init() {
   // Listen for cross-frame messages (for Google Docs/Drive iframe popup delegation)
   window.addEventListener("message", handleCrossFrameMessage);
 
-  // Log iframe context for debugging
-  const inIframe = window !== window.top;
-  const isSandboxed =
-    document.origin === "null" || document.origin === "about:blank";
-  const isGoogleDocs = window.location.hostname.includes("docs.google.com");
 }
 
 // ============================================
@@ -730,6 +726,7 @@ function handleDragStart(event, header) {
   state.popupStartY = rect.top;
 
   header.style.cursor = "grabbing";
+  document.body.style.cursor = "grabbing";
 
   document.addEventListener("mousemove", handleDragMove);
   document.addEventListener("mouseup", handleDragEnd);
@@ -758,13 +755,22 @@ function handleDragEnd() {
   if (header) {
     header.style.cursor = "grab";
   }
+  document.body.style.cursor = "";
 
   // Remove listeners
   document.removeEventListener("mousemove", handleDragMove);
   document.removeEventListener("mouseup", handleDragEnd);
 }
 
+function closeAnyPlaceholderPrompt() {
+  const prompt = document.querySelector(".blocknotes-placeholder-prompt");
+  if (prompt) prompt.remove();
+}
+
 function showPopup() {
+  // Close any open placeholder prompt before showing note popup
+  closeAnyPlaceholderPrompt();
+
   // Safety check: if isPopupOpen is true but container doesn't exist, reset state
   if (state.isPopupOpen && !state.popupContainer) {
     state.isPopupOpen = false;
@@ -995,6 +1001,18 @@ function showPopup() {
   addStyles();
 }
 
+function saveCurrentPopupPosition() {
+  if (state.popupContainer) {
+    const rect = state.popupContainer.getBoundingClientRect();
+    state.lastPopupPosition = {
+      top: `${rect.top}px`,
+      left: `${rect.left}px`,
+      width: rect.width,
+      maxHeight: 400,
+    };
+  }
+}
+
 function getPopupPosition(hasTarget = true, element = null) {
   const viewportHeight = window.innerHeight;
   const viewportWidth = window.innerWidth;
@@ -1088,7 +1106,7 @@ function getPopupStyles(hasTarget = true) {
     ${position.transform ? `transform: ${position.transform} !important;` : ''}
     width: ${position.width}px !important;
     max-height: ${position.maxHeight}px !important;
-    background: rgba(0, 0, 0, 0.32) !important;
+    background: #0f172a78 !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
     border-radius: 16px !important;
     box-shadow: rgba(50, 50, 93, 0.25) 0px 13px 27px -5px, rgba(0, 0, 0, 0.3) 0px 8px 16px -8px;
@@ -1100,6 +1118,7 @@ function getPopupStyles(hasTarget = true) {
     flex-direction: column !important;
     visibility: visible !important;
     opacity: 1 !important;
+    isolation: isolate !important;
     backdrop-filter: blur(20px) saturate(140%) !important;
     -webkit-backdrop-filter: blur(20px) saturate(140%) !important;
   `;
@@ -1170,7 +1189,7 @@ function filterNotes(query, filterType = "both", sortType = null) {
     .filter((note) => {
       if (!normalizedQuery) return true;
 
-      const name = (note.noteName || "").toLowerCase();
+      const name = (note.noteName || `Note ${(note.displayIndex || 0) + 1}`).toLowerCase();
       const text = (note.noteText || "").toLowerCase();
 
       // Match based on filter type
@@ -1184,8 +1203,8 @@ function filterNotes(query, filterType = "both", sortType = null) {
         return (b.timestamp || 0) - (a.timestamp || 0);
       }
       if (sortType === "alpha") {
-        const aName = (a.noteName || "").toLowerCase();
-        const bName = (b.noteName || "").toLowerCase();
+        const aName = (a.noteName || `Note ${(a.displayIndex || 0) + 1}`).toLowerCase();
+        const bName = (b.noteName || `Note ${(b.displayIndex || 0) + 1}`).toLowerCase();
         return aName.localeCompare(bName);
       }
 
@@ -1200,10 +1219,8 @@ function filterNotes(query, filterType = "both", sortType = null) {
         return bLastUsed - aLastUsed;
       }
 
-      const aName = (a.noteName || "").toLowerCase();
-      const bName = (b.noteName || "").toLowerCase();
-      const aText = (a.noteText || "").toLowerCase();
-      const bText = (b.noteText || "").toLowerCase();
+      const aName = (a.noteName || `Note ${(a.displayIndex || 0) + 1}`).toLowerCase();
+      const bName = (b.noteName || `Note ${(b.displayIndex || 0) + 1}`).toLowerCase();
 
       // Prioritize exact name matches
       const aNameMatch = aName.includes(normalizedQuery);
@@ -1312,6 +1329,7 @@ function renderResults(list, matches, query = "") {
       // Save state before closePopup clears it
       const savedElement = state.lastFocusedElement;
       const savedRange = state.savedRange;
+      saveCurrentPopupPosition();
       // Close popup BEFORE handling note insertion to prevent focus conflicts
       closePopup();
       // Restore state for handleNoteInsertion
@@ -1365,6 +1383,11 @@ function selectItem(index) {
   selectableItems.forEach((item, i) => {
     item.style.cssText = getItemStyles(i === index);
   });
+
+  // Scroll to selected item
+  if (selectableItems[index]) {
+    selectableItems[index].scrollIntoView({ block: "nearest" });
+  }
 }
 
 function handlePopupKeydown(event) {
@@ -1400,6 +1423,7 @@ function handlePopupKeydown(event) {
         // Save state before closePopup clears it
         const savedElement = state.lastFocusedElement;
         const savedRange = state.savedRange;
+        saveCurrentPopupPosition();
         // Close popup BEFORE handling note insertion to prevent focus conflicts
         closePopup();
         // Restore state for handleNoteInsertion
@@ -2253,9 +2277,9 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
   const promptContainer = document.createElement("div");
   promptContainer.className = "blocknotes-placeholder-prompt";
   promptContainer.tabIndex = -1; // Make container focusable for focus trapping
-   // Get positioning for the placeholder popup (same as note popup)
+   // Use saved popup position (preserves drag location) or fall back to computed position
   const hasTarget = !!state.lastFocusedElement;
-  const position = getPopupPosition(hasTarget, state.lastFocusedElement);
+  const position = state.lastPopupPosition || getPopupPosition(hasTarget, state.lastFocusedElement);
   
   promptContainer.style.cssText = `
     position: fixed !important;
@@ -2274,13 +2298,17 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     color: #fafafa !important;
 
     box-shadow: rgba(50, 50, 93, 0.25) 0px 13px 27px -5px, rgba(0, 0, 0, 0.3) 0px 8px 16px -8px;
-    background: rgba(0, 0, 0, 0.32) !important;
+    background: #0f172a78 !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
     border-radius: 16px !important;
     font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
     overflow: hidden !important;
     transition: opacity 0.15s !important;
+    display: flex !important;
+    flex-direction: column !important;
+    isolation: isolate !important;
     backdrop-filter: blur(20px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(140%) !important;
   `;
 
   // Prevent focus from escaping to Word/Google Docs
@@ -2461,6 +2489,7 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     cursor: grab !important;
     user-select: none !important;
     border-radius: 16px 16px 0 0 !important;
+    flex-shrink: 0 !important;
   `;
 
   const title = document.createElement("span");
@@ -2559,7 +2588,8 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
     display: flex !important;
     flex-direction: column !important;
     gap: 14px !important;
-    max-height: 60vh !important;
+    flex: 1 !important;
+    min-height: 0 !important;
     overflow-y: auto !important;
     margin: 0 !important;
     border: none !important;
@@ -2891,6 +2921,9 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
   promptContainer.appendChild(header);
   promptContainer.appendChild(form);
   document.body.appendChild(promptContainer);
+
+  // Clear saved position after use
+  state.lastPopupPosition = null;
 
   // Focus the first input after DOM attachment for keyboard input
   // Use multiple attempts to combat aggressive focus stealing from Word/Docs
@@ -3438,9 +3471,8 @@ function handleMouseDown(event) {
 }
 
 function handleTextSelection() {
-  // Don't process if we were dragging - let drag end cleanly
+  // Don't process if we were dragging - let handleDragEnd clean up
   if (state.isDragging) {
-    state.isDragging = false;
     return;
   }
 
