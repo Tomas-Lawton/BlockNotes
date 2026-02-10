@@ -163,11 +163,11 @@ async function generateNoteName(
   customBaseUrl = "",
 ) {
   const prompt = `Suggest a concise and meaningful title for the following note content:\n"${noteText}".
-    IT IS VERY CRITICALLY IMPORTANT YOU ANSWER WITH ONLY ONE NAME.
+    IT IS VERY CRITICALLY IMPORTANT YOU ANSWER WITH ONLY ONE CONCISE NAME.
     Do your best to capture what the note actually contains so it is easy to remember what it was about later.
-    Maximum 5 words suggested name.
+    Maximum 4 words suggested name.
     If the note text is not understandable just combine a random color with a random animal and a random 2-digit number.
-    IT IS VERY CRITICALLY IMPORTANT YOU ANSWER DIRECTLY WITH ONLY ONE NAME.`;
+    IT IS VERY CRITICALLY IMPORTANT YOU ANSWER DIRECTLY WITH ONLY ONE CONCISE NAME.`;
 
   const stripQuotes = (s) => s.replace(/^["'`]+|["'`]+$/g, "");
 
@@ -1244,7 +1244,7 @@ function renderResults(list, matches, query = "") {
     empty.style.cssText = `
       padding: 16px;
       text-align: center;
-      color: #b8c9e2;
+      color: #fff;
       font-size: 14px;
     `;
     list.appendChild(empty);
