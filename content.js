@@ -995,7 +995,7 @@ function showPopup() {
   addStyles();
 }
 
-function getPopupStyles(hasTarget = true) {
+function getPopupPosition(hasTarget = true, element = null) {
   const viewportHeight = window.innerHeight;
   const viewportWidth = window.innerWidth;
   const maxHeight = 400;
@@ -1004,38 +1004,25 @@ function getPopupStyles(hasTarget = true) {
 
   // If no target element, center the popup
   if (!hasTarget) {
-    return `
-      position: fixed !important;
-      width: ${width}px !important;
-      max-height: ${maxHeight}px !important;
-      top: 50% !important;
-      left: 50% !important;
-      transform: translate(-50%, -50%) !important;
-      background: rgba(119, 119, 119, 0.41) !important;
-      border: 1px solid rgba(255, 255, 255, 0.12) !important;
-      border-radius: 16px !important;
-      box-shadow: rgba(0, 0, 0, 0.18) 0px 8px 32px !important;
-      z-index: 2147483647 !important;
-      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
-      transition: opacity 0.15s !important;
-      overflow: hidden !important;
-      display: flex !important;
-      flex-direction: column !important;
-      visibility: visible !important;
-      opacity: 1 !important;
-      backdrop-filter: blur(20px) saturate(140%) !important;
-    `;
+    return {
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      width: width,
+      maxHeight: maxHeight
+    };
   }
 
-  const rect = state.lastFocusedElement.getBoundingClientRect();
+  const target = element || state.lastFocusedElement;
+  const rect = target.getBoundingClientRect();
 
   // Always start from the input's actual position
   let cursorX = rect.left;
   let cursorY = rect.bottom; // Use bottom of input as reference
 
   // Try to get precise cursor position for inputs
-  if (state.lastFocusedElement.tagName === "INPUT") {
-    const el = state.lastFocusedElement;
+  if (target.tagName === "INPUT") {
+    const el = target;
     const cursorPos = el.selectionStart || 0;
 
     // Measure horizontal cursor position
@@ -1054,7 +1041,6 @@ function getPopupStyles(hasTarget = true) {
     const paddingLeft = parseInt(
       window.getComputedStyle(el).paddingLeft || "0",
     );
-    // cursorX = rect.left + spanWidth + paddingLeft;
     cursorX = rect.left;
   }
 
@@ -1084,12 +1070,24 @@ function getPopupStyles(hasTarget = true) {
     left = 20;
   }
 
+  return {
+    top: `${top}px`,
+    left: `${left}px`,
+    width: width,
+    maxHeight: maxHeight
+  };
+}
+
+function getPopupStyles(hasTarget = true) {
+  const position = getPopupPosition(hasTarget, state.lastFocusedElement);
+  
   return `
     position: fixed !important;
-    top: ${top}px !important;
-    left: ${left}px !important;
-    width: ${width}px !important;
-    max-height: ${maxHeight}px !important;
+    top: ${position.top} !important;
+    left: ${position.left} !important;
+    ${position.transform ? `transform: ${position.transform} !important;` : ''}
+    width: ${position.width}px !important;
+    max-height: ${position.maxHeight}px !important;
     background: rgba(0, 0, 0, 0.32) !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
     border-radius: 16px !important;
@@ -1106,6 +1104,7 @@ function getPopupStyles(hasTarget = true) {
     -webkit-backdrop-filter: blur(20px) saturate(140%) !important;
   `;
 }
+
 
 function getListStyles() {
   return `
@@ -2265,14 +2264,18 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
   const promptContainer = document.createElement("div");
   promptContainer.className = "blocknotes-placeholder-prompt";
   promptContainer.tabIndex = -1; // Make container focusable for focus trapping
+   // Get positioning for the placeholder popup (same as note popup)
+  const hasTarget = !!state.lastFocusedElement;
+  const position = getPopupPosition(hasTarget, state.lastFocusedElement);
+  
   promptContainer.style.cssText = `
     position: fixed !important;
-
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    width: 380px !important;
+    top: ${position.top} !important;
+    left: ${position.left} !important;
+    ${position.transform ? `transform: ${position.transform} !important;` : ''}
+    width: ${position.width}px !important;
     max-width: 90vw !important;
+    max-height: ${position.maxHeight}px !important;
     z-index: 2147483647 !important;
     animation: placeholderPromptFadeIn 0.2s ease !important;
     display: block !important;
@@ -2927,11 +2930,11 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
       @keyframes placeholderPromptFadeIn {
         from {
           opacity: 0;
-          transform: translate(-50%, -50%) scale(0.95);
+          ${position.transform ? `transform: ${position.transform} scale(0.95);` : 'transform: scale(0.95);'}
         }
         to {
           opacity: 1;
-          transform: translate(-50%, -50%) scale(1);
+          ${position.transform ? `transform: ${position.transform} scale(1);` : 'transform: scale(1);'}
         }
       }
       .blocknotes-placeholder-prompt input::placeholder {
