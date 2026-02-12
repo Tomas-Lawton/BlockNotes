@@ -1099,7 +1099,7 @@ function createNote({ noteText, date, noteIndex, displayIndex, noteName, noteCol
     dragHandle.addEventListener("touchstart", (e) => e.stopPropagation());
   }
 
-  let originalTitle = noteHeading.textContent;
+  let originalTitle = noteHeading.childNodes[0]?.textContent || noteHeading.textContent;
   let originalText = noteTextDiv.dataset.rawText || noteTextDiv.textContent;
 
   const handleKeydown = (e) => {
@@ -1173,7 +1173,7 @@ function createNote({ noteText, date, noteIndex, displayIndex, noteName, noteCol
 
     const input1 = document.createElement("input");
     input1.type = "text";
-    input1.value = noteHeading.textContent;
+    input1.value = noteHeading.childNodes[0]?.textContent || noteHeading.textContent;
     input1.maxLength = 100;
     input1.classList.add("note-title");
     noteHeading.replaceWith(input1);

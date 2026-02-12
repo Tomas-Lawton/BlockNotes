@@ -319,6 +319,10 @@ function init() {
   document.addEventListener("input", handleInput, true);
   document.addEventListener("keydown", handleGlobalKeydown);
   document.addEventListener("keyup", handleGlobalKeyup);
+  document.addEventListener("paste", () => {
+    state.isPasting = true;
+    setTimeout(() => { state.isPasting = false; }, 200);
+  }, true);
   document.addEventListener("mouseup", handleTextSelection);
   document.addEventListener("mousedown", handleMouseDown);
   chrome.runtime.onMessage.addListener(handleMessage);
