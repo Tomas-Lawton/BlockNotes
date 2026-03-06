@@ -26,6 +26,10 @@ const state = {
   isCrossFramePopup: false, // Whether current popup was triggered from a child frame
   googleDocsIframeDoc: null, // Reference to Google Docs iframe document for cleanup
   lastPopupPosition: null, // Saved popup position (including after drag) for placeholder prompt
+  activeDragNoteText: null, // Note text being dragged from BlockNotes tab
+  dragDropHandled: false, // Whether native drop event was handled
+  dragLastX: 0, // Last mouse position during dragover
+  dragLastY: 0,
 };
 
 // ============================================
@@ -325,6 +329,8 @@ function init() {
   }, true);
   document.addEventListener("mouseup", handleTextSelection);
   document.addEventListener("mousedown", handleMouseDown);
+  document.addEventListener("drop", handleBlockNotesDrop, true);
+  document.addEventListener("dragover", handleBlockNotesDragOver, true);
   chrome.runtime.onMessage.addListener(handleMessage);
 
   // Listen for cross-frame messages (for Google Docs/Drive iframe popup delegation)
@@ -3439,6 +3445,175 @@ function handleMessage(request) {
   if (request.action === "pasteValue") {
     pasteNote(request.value);
   }
+  if (request.action === "noteDragStart") {
+    state.activeDragNoteText = request.noteText;
+    state.dragDropHandled = false;
+  }
+  if (request.action === "noteDragDropHandled") {
+    state.dragDropHandled = true;
+    state.activeDragNoteText = null;
+  }
+  if (request.action === "noteDragEnd") {
+    const noteText = state.activeDragNoteText;
+    state.activeDragNoteText = null;
+    // If native drop or another frame already handled it, skip
+    if (!noteText || state.dragDropHandled) {
+      state.dragDropHandled = false;
+      return;
+    }
+    state.dragDropHandled = false;
+
+    // Try to find an active input in this frame
+    const target = findActiveInput();
+    const placeholders = extractPlaceholders(noteText);
+    const isChildFrame = window !== window.top;
+
+    if (target && placeholders.length > 0 && isChildFrame) {
+      // Child iframe (e.g. Gmail compose) can't show the prompt overlay —
+      // skip and let the top-level frame handle it via clipboard path
+    } else if (target) {
+      chrome.runtime.sendMessage({ action: "noteDragDropHandled" });
+      state.lastFocusedElement = target;
+      if (placeholders.length > 0) {
+        showPlaceholderPrompt(noteText, placeholders);
+      } else {
+        insertTextIntoElement(target, noteText);
+      }
+    } else if (document.hasFocus() && window === window.top) {
+      // Top-level frame with focus but no input found — clipboard fallback
+      chrome.runtime.sendMessage({ action: "noteDragDropHandled" });
+      const placeholders = extractPlaceholders(noteText);
+      if (placeholders.length > 0) {
+        showPlaceholderPrompt(noteText, placeholders, true);
+      } else {
+        navigator.clipboard.writeText(noteText).catch(() => {});
+        showToast("Note Copied", "Press Ctrl/Cmd+V to paste");
+      }
+    }
+  }
+}
+
+// Find the nearest input element by walking up from an element
+function findInputFromElement(el) {
+  let current = el;
+  while (current && current !== document.body && current !== document.documentElement) {
+    if (isInput(current)) return current;
+    current = current.parentElement;
+  }
+  return null;
+}
+
+// Find the input element at the drop position in the current frame.
+// Priority: element at drop point > activeElement > lastFocusedElement > query search
+function findActiveInput() {
+  // 1. Use tracked drop coordinates to find the element under the cursor
+  if (state.dragLastX || state.dragLastY) {
+    const elAtPoint = document.elementFromPoint(state.dragLastX, state.dragLastY);
+    state.dragLastX = 0;
+    state.dragLastY = 0;
+
+    if (elAtPoint) {
+      // If it's an iframe, let the child frame handle it
+      if (elAtPoint.tagName === "IFRAME") return null;
+
+      const input = findInputFromElement(elAtPoint);
+      if (input) {
+        input.focus();
+        return input;
+      }
+    }
+  }
+
+  // 2. Check active element
+  const active = document.activeElement;
+  if (active && active !== document.body && active !== document.documentElement) {
+    if (active.tagName === "IFRAME") return null;
+    if (isInput(active)) return active;
+  }
+
+  // 3. Check last focused element (tracked from prior focus events)
+  if (state.lastFocusedElement && document.contains(state.lastFocusedElement) && isInput(state.lastFocusedElement)) {
+    return state.lastFocusedElement;
+  }
+
+  // 4. Only broad search if this frame has focus
+  if (!document.hasFocus()) return null;
+
+  const selectors = [
+    '[contenteditable="true"]:not([aria-hidden="true"])',
+    '[role="textbox"]:not([aria-hidden="true"])',
+    'textarea:not([disabled]):not([aria-hidden="true"])',
+    'input[type="text"]:not([disabled]):not([aria-hidden="true"])',
+    'input[type="search"]:not([disabled]):not([aria-hidden="true"])',
+    '.editable',
+    '.Am',
+    '[g_editable="true"]',
+  ];
+
+  for (const selector of selectors) {
+    const elements = document.querySelectorAll(selector);
+    for (const el of elements) {
+      if (isInput(el) && el.offsetParent !== null) {
+        return el;
+      }
+    }
+  }
+
+  return null;
+}
+
+// Allow dropping BlockNotes notes into any input field
+function handleBlockNotesDragOver(e) {
+  if (!state.activeDragNoteText) return;
+  // Track mouse position for fallback insertion
+  state.dragLastX = e.clientX;
+  state.dragLastY = e.clientY;
+  if (isInput(e.target)) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  }
+}
+
+// Handle native drop event when the browser fires it (e.g. Google Docs)
+function handleBlockNotesDrop(e) {
+  if (!state.activeDragNoteText) return;
+  const noteText = state.activeDragNoteText;
+  const placeholders = extractPlaceholders(noteText);
+
+  // No placeholders - let the browser handle the native drop
+  // (Sortable's setData already set text/plain to just the note body)
+  if (placeholders.length === 0) {
+    state.dragDropHandled = true;
+    state.activeDragNoteText = null;
+    chrome.runtime.sendMessage({ action: "noteDragDropHandled" });
+    return;
+  }
+
+  // Has placeholders - prevent native drop and show placeholder prompt
+  e.preventDefault();
+  state.dragDropHandled = true;
+  state.activeDragNoteText = null;
+  chrome.runtime.sendMessage({ action: "noteDragDropHandled" });
+
+  // Find the best target: direct target, walk up DOM, or activeElement
+  let target = e.target;
+  if (!isInput(target)) {
+    let current = target.parentElement;
+    while (current && current !== document.body) {
+      if (isInput(current)) { target = current; break; }
+      current = current.parentElement;
+    }
+    if (!isInput(target) && document.activeElement && isInput(document.activeElement)) {
+      target = document.activeElement;
+    }
+  }
+
+  state.lastFocusedElement = target;
+  if (target.isContentEditable) {
+    const sel = window.getSelection();
+    state.savedRange = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+  }
+  handleNoteInsertion(noteText);
 }
 
 // ============================================

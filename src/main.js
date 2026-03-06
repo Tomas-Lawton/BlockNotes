@@ -945,6 +945,9 @@ function createNote({ noteText, date, noteIndex, displayIndex, noteName, noteCol
   note.setAttribute("data-favorited", favorited ? "true" : "false");
   note.setAttribute("data-archived", archived ? "true" : "false");
 
+  // Store note body on the element so Sortable's setData can access it
+  note._blocknotesText = noteText;
+
   // Apply note color (use saved color or default)
   const currentColor = noteColor || DEFAULT_NOTE_COLOR;
   note.style.backgroundColor = currentColor;
@@ -1378,6 +1381,7 @@ function createNote({ noteText, date, noteIndex, displayIndex, noteName, noteCol
       });
     });
 
+    note._blocknotesText = originalText;
     actionContainer.classList.remove("note-background");
     note.classList.remove("editing");
     note.draggable = true;

@@ -46,6 +46,12 @@ export function updateDragDropListeners() {
     // Grid settings
     swapThreshold: 0.5,
 
+    // Set only the note body text as drag data (not name/date/UI text)
+    setData: (dataTransfer, dragEl) => {
+      const noteText = dragEl._blocknotesText || dragEl.textContent;
+      dataTransfer.setData("text/plain", noteText);
+    },
+
     onStart: (evt) => {
       // Don't drag while editing
       const isEditing = evt.item.querySelector("input.note-title, textarea.note-text-edit") !== null;
@@ -53,9 +59,15 @@ export function updateDragDropListeners() {
         return false;
       }
       document.body.style.cursor = 'grabbing';
+      // Notify content scripts about the drag for placeholder handling
+      const noteText = evt.item._blocknotesText;
+      if (noteText) {
+        chrome.runtime.sendMessage({ action: "noteDragStart", noteText });
+      }
     },
     onEnd: (evt) => {
       document.body.style.cursor = '';
+      chrome.runtime.sendMessage({ action: "noteDragEnd" });
       updateDisplayIndexes();
       playPop();
     },

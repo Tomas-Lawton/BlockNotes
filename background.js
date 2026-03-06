@@ -108,3 +108,14 @@ Would you be open to a brief chat?`,
 chrome.action.onClicked.addListener(async () => {
   chrome.tabs.create({ url: chrome.runtime.getURL("index.html") });
 });
+
+// Broadcast drag state to all content scripts so they can intercept drops
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.action === "noteDragStart" || message.action === "noteDragEnd" || message.action === "noteDragDropHandled") {
+    chrome.tabs.query({}, (tabs) => {
+      for (const tab of tabs) {
+        chrome.tabs.sendMessage(tab.id, message).catch(() => {});
+      }
+    });
+  }
+});
