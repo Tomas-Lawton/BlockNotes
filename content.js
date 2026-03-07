@@ -111,6 +111,16 @@ function handleCrossFrameMessage(event) {
       document.execCommand("insertText", false, noteText);
     }
   }
+
+  if (event.data.action === "showPlaceholderPromptForDrag") {
+    // Child iframe requested parent to show placeholder prompt for a dragged note
+    state.crossFrameSource = event.source;
+    const noteText = event.data.noteText;
+    const placeholders = extractPlaceholders(noteText);
+    if (placeholders.length > 0) {
+      showPlaceholderPrompt(noteText, placeholders, true);
+    }
+  }
 }
 
 // Helper to insert text into an element (extracted for cross-frame use)
@@ -2241,7 +2251,7 @@ function showPlaceholderPromptIframe(
   document.body.appendChild(container);
 }
 
-function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
+function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false, onInsert = null) {
   // Save the focused element and selection range before showing prompt
   const targetElement = state.lastFocusedElement;
   const savedRange = state.savedRange;
@@ -2908,8 +2918,11 @@ function showPlaceholderPrompt(noteText, placeholders, isCrossFrame = false) {
       promptContainer.remove();
       cleanupPromptListeners();
 
-      // Handle cross-frame insertion
-      if (isCrossFrame) {
+      // Handle insertion
+      if (onInsert) {
+        // Custom insertion callback (e.g. drag-and-drop)
+        onInsert(finalText);
+      } else if (isCrossFrame) {
         sendNoteToChildFrame(finalText);
 
         // Set isPasting flag to prevent popup from reopening when user pastes
@@ -3466,16 +3479,17 @@ function handleMessage(request) {
     // Try to find an active input in this frame
     const target = findActiveInput();
     const placeholders = extractPlaceholders(noteText);
-    const isChildFrame = window !== window.top;
+    console.log("[BlockNotes DnD] noteDragEnd: frame:", window === window.top ? "TOP" : "CHILD", "target:", target?.tagName, target?.className?.substring?.(0, 40), "placeholders:", placeholders.length, "hasFocus:", document.hasFocus());
 
-    if (target && placeholders.length > 0 && isChildFrame) {
-      // Child iframe (e.g. Gmail compose) can't show the prompt overlay —
-      // skip and let the top-level frame handle it via clipboard path
-    } else if (target) {
+    if (target) {
       chrome.runtime.sendMessage({ action: "noteDragDropHandled" });
       state.lastFocusedElement = target;
       if (placeholders.length > 0) {
-        showPlaceholderPrompt(noteText, placeholders);
+        // Use insertTextIntoElement for drag-and-drop (not pasteNote which expects "/" flow)
+        showPlaceholderPrompt(noteText, placeholders, false, (finalText) => {
+          target.focus();
+          insertTextIntoElement(target, finalText);
+        });
       } else {
         insertTextIntoElement(target, noteText);
       }
@@ -3536,18 +3550,22 @@ function findActiveInput() {
     return state.lastFocusedElement;
   }
 
-  // 4. Only broad search if this frame has focus
-  if (!document.hasFocus()) return null;
-
+  // 4. Broad search — use same selectors as the "/" handler for Gmail etc.
   const selectors = [
+    // Gmail compose body (matching "/" handler selectors)
+    '[aria-label="Message Body"]',
+    '[aria-label="Message body"]',
+    '[g_editable="true"]',
+    '.editable[contenteditable="true"]',
+    '.Am.Al.editable',
+    'div[aria-multiline="true"]',
+    '[role="textbox"][contenteditable="true"]',
+    // General
     '[contenteditable="true"]:not([aria-hidden="true"])',
     '[role="textbox"]:not([aria-hidden="true"])',
     'textarea:not([disabled]):not([aria-hidden="true"])',
     'input[type="text"]:not([disabled]):not([aria-hidden="true"])',
     'input[type="search"]:not([disabled]):not([aria-hidden="true"])',
-    '.editable',
-    '.Am',
-    '[g_editable="true"]',
   ];
 
   for (const selector of selectors) {
@@ -3589,31 +3607,15 @@ function handleBlockNotesDrop(e) {
     return;
   }
 
-  // Has placeholders - prevent native drop and show placeholder prompt
+  // Has placeholders - prevent raw {{text}} from being inserted,
+  // then show placeholder prompt with clipboard path
+  // (Google Docs can't use execCommand, so clipboard is the reliable path)
   e.preventDefault();
+  e.stopImmediatePropagation();
   state.dragDropHandled = true;
   state.activeDragNoteText = null;
   chrome.runtime.sendMessage({ action: "noteDragDropHandled" });
-
-  // Find the best target: direct target, walk up DOM, or activeElement
-  let target = e.target;
-  if (!isInput(target)) {
-    let current = target.parentElement;
-    while (current && current !== document.body) {
-      if (isInput(current)) { target = current; break; }
-      current = current.parentElement;
-    }
-    if (!isInput(target) && document.activeElement && isInput(document.activeElement)) {
-      target = document.activeElement;
-    }
-  }
-
-  state.lastFocusedElement = target;
-  if (target.isContentEditable) {
-    const sel = window.getSelection();
-    state.savedRange = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
-  }
-  handleNoteInsertion(noteText);
+  showPlaceholderPrompt(noteText, placeholders, true);
 }
 
 // ============================================
