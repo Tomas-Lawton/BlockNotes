@@ -109,9 +109,25 @@ chrome.action.onClicked.addListener(async () => {
   chrome.tabs.create({ url: chrome.runtime.getURL("index.html") });
 });
 
-// Broadcast drag state to all content scripts so they can intercept drops
+// Broadcast drag state to content scripts
 chrome.runtime.onMessage.addListener((message) => {
-  if (message.action === "noteDragStart" || message.action === "noteDragEnd" || message.action === "noteDragDropHandled") {
+  if (message.action === "noteDragStart") {
+    // Broadcast to all tabs so dragover tracking works everywhere
+    chrome.tabs.query({}, (tabs) => {
+      for (const tab of tabs) {
+        chrome.tabs.sendMessage(tab.id, message).catch(() => {});
+      }
+    });
+  }
+  if (message.action === "noteDragEnd") {
+    // Only send to the active tab — that's where the user dropped
+    chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, message).catch(() => {});
+      }
+    });
+  }
+  if (message.action === "noteDragDropHandled") {
     chrome.tabs.query({}, (tabs) => {
       for (const tab of tabs) {
         chrome.tabs.sendMessage(tab.id, message).catch(() => {});

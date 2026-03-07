@@ -3479,7 +3479,6 @@ function handleMessage(request) {
     // Try to find an active input in this frame
     const target = findActiveInput();
     const placeholders = extractPlaceholders(noteText);
-    console.log("[BlockNotes DnD] noteDragEnd: frame:", window === window.top ? "TOP" : "CHILD", "target:", target?.tagName, target?.className?.substring?.(0, 40), "placeholders:", placeholders.length, "hasFocus:", document.hasFocus());
 
     if (target) {
       chrome.runtime.sendMessage({ action: "noteDragDropHandled" });
