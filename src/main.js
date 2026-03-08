@@ -2633,9 +2633,6 @@ function loadSettingsPageValues() {
   chrome.storage.local.get("settings", (data) => {
     const settings = data.settings || {};
 
-    const providerSelect = document.getElementById("page-ai-provider");
-    const modelInput = document.getElementById("page-ai-model");
-    const keyInput = document.getElementById("page-ai-key");
     const autofillCheckbox = document.getElementById("page-autofill");
     const playSoundsCheckbox = document.getElementById("page-play-sounds");
     const autonameNewNotesCheckbox = document.getElementById("page-autoname-newnotes");
@@ -2643,25 +2640,6 @@ function loadSettingsPageValues() {
     const noteSizeSlider = document.getElementById("page-note-size");
     const noteSizeValue = document.getElementById("page-note-size-value");
 
-    if (providerSelect) providerSelect.value = settings.aiProvider || "none";
-    if (modelInput) modelInput.value = settings.aiModel || "";
-    if (keyInput) keyInput.value = settings.key || "";
-
-    // Load custom provider fields
-    const baseUrlInput = document.getElementById("page-ai-base-url");
-    const baseUrlField = document.getElementById("page-ai-base-url-field");
-    const modelField = document.getElementById("page-ai-model-field");
-    if (baseUrlInput) baseUrlInput.value = settings.customBaseUrl || "";
-
-    // Show/hide custom fields based on provider
-    const currentProvider = settings.aiProvider || "none";
-    if (baseUrlField) baseUrlField.style.display = currentProvider === "custom" ? "" : "none";
-    if (modelField && currentProvider === "custom") {
-      // For custom, the model field placeholder should indicate custom model name
-      if (modelInput) modelInput.placeholder = "e.g. openai/gpt-4o";
-    } else {
-      if (modelInput) modelInput.placeholder = "e.g., gpt-4o-mini";
-    }
     if (autofillCheckbox) autofillCheckbox.checked = settings.autoFillPlaceholders || false;
     if (playSoundsCheckbox) playSoundsCheckbox.checked = settings.playSounds !== false;
     // Auto-name settings default to true, user can disable them
@@ -2698,10 +2676,6 @@ function initSettingsPage() {
 
   // Add change listeners to all settings inputs
   const settingsInputs = [
-    "page-ai-provider",
-    "page-ai-model",
-    "page-ai-key",
-    "page-ai-base-url",
     "page-autofill",
     "page-play-sounds",
     "page-autoname-newnotes",
@@ -2716,18 +2690,6 @@ function initSettingsPage() {
       el.addEventListener("input", markUnsavedChanges);
     }
   });
-
-  // Toggle custom provider fields visibility when provider changes
-  const pageProviderSelect = document.getElementById("page-ai-provider");
-  const pageBaseUrlField = document.getElementById("page-ai-base-url-field");
-  const pageModelInput = document.getElementById("page-ai-model");
-  if (pageProviderSelect) {
-    pageProviderSelect.addEventListener("change", () => {
-      const isCustom = pageProviderSelect.value === "custom";
-      if (pageBaseUrlField) pageBaseUrlField.style.display = isCustom ? "" : "none";
-      if (pageModelInput) pageModelInput.placeholder = isCustom ? "e.g. openai/gpt-4o" : "e.g., gpt-4o-mini";
-    });
-  }
 
   // Update note size value display and apply in real-time
   noteSizeSlider?.addEventListener("input", () => {
@@ -2744,9 +2706,6 @@ function initSettingsPage() {
 
   // Save settings
   saveBtn?.addEventListener("click", () => {
-    const providerSelect = document.getElementById("page-ai-provider");
-    const modelInput = document.getElementById("page-ai-model");
-    const keyInput = document.getElementById("page-ai-key");
     const autofillCheckbox = document.getElementById("page-autofill");
     const playSoundsCheckbox = document.getElementById("page-play-sounds");
     const autonameNewNotesCheckbox = document.getElementById("page-autoname-newnotes");
@@ -2756,11 +2715,6 @@ function initSettingsPage() {
     chrome.storage.local.get("settings", (data) => {
       const settings = data.settings || {};
 
-      const pageBaseUrlInput = document.getElementById("page-ai-base-url");
-      settings.aiProvider = providerSelect?.value || "";
-      settings.aiModel = modelInput?.value || "";
-      settings.key = keyInput?.value || "";
-      settings.customBaseUrl = pageBaseUrlInput?.value || settings.customBaseUrl || "";
       settings.autoFillPlaceholders = autofillCheckbox?.checked || false;
       settings.playSounds = playSoundsCheckbox?.checked !== false;
       settings.autonameNewNotes = autonameNewNotesCheckbox?.checked || false;

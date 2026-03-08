@@ -30,7 +30,54 @@ const state = {
   dragDropHandled: false, // Whether native drop event was handled
   dragLastX: 0, // Last mouse position during dragover
   dragLastY: 0,
+  isCommandRunning: false, // Whether an AI command is currently executing
+  activeCommandId: null, // ID of currently running command
+  aiSettings: null, // Cached AI settings {provider, model, key, customBaseUrl}
 };
+
+// ============================================
+// AI COMMANDS
+// ============================================
+const COMMANDS = [
+  // Tone
+  { id: "formal", label: "Make Formal", category: "Tone", prompt: "Rewrite this text in a formal, professional tone. Return ONLY the rewritten text, nothing else:\n\n" },
+  { id: "casual", label: "Make Casual", category: "Tone", prompt: "Rewrite this text in a casual, relaxed tone. Return ONLY the rewritten text, nothing else:\n\n" },
+  { id: "confident", label: "Make Confident", category: "Tone", prompt: "Rewrite this text to sound more confident and assertive. Remove hedging words like 'maybe', 'I think', 'perhaps', 'might'. Return ONLY the rewritten text, nothing else:\n\n" },
+  { id: "diplomatic", label: "Make Diplomatic", category: "Tone", prompt: "Rewrite this text to be more diplomatic and tactful. Soften any blunt or harsh language while preserving the core message. Add politeness and consideration. Return ONLY the rewritten text, nothing else:\n\n" },
+  { id: "direct", label: "Make Direct", category: "Tone", prompt: "Rewrite this text to be concise and direct. Remove filler words, unnecessary qualifiers, and fluff. Get straight to the point. Return ONLY the rewritten text, nothing else:\n\n" },
+
+  // Transform
+  { id: "shorten", label: "Shorten", category: "Transform", prompt: "Make this text shorter and more concise while keeping the meaning. Return ONLY the shortened text, nothing else:\n\n" },
+  { id: "expand", label: "Expand", category: "Transform", prompt: "Expand this text with more detail while keeping the same tone. Return ONLY the expanded text, nothing else:\n\n" },
+  { id: "fix", label: "Fix Grammar", category: "Transform", prompt: "Fix any grammar, spelling, and punctuation errors in this text. Return ONLY the corrected text, nothing else:\n\n" },
+  { id: "proofread", label: "Proofread", category: "Transform", prompt: "Proofread this text thoroughly. Fix grammar, spelling, punctuation, awkward phrasing, and word choice issues. Improve clarity and flow. Return ONLY the improved text, nothing else:\n\n" },
+  { id: "simplify", label: "Simplify", category: "Transform", prompt: "Simplify this text so it's easy to understand. Return ONLY the simplified text, nothing else:\n\n" },
+  { id: "eli5", label: "ELI5", category: "Transform", prompt: "Rewrite this text as if explaining it to a 5-year-old. Use simple words and short sentences. Return ONLY the rewritten text, nothing else:\n\n" },
+  { id: "humanize", label: "Humanize", category: "Transform", prompt: "Rewrite this text to sound more natural and human. Remove robotic or AI-sounding patterns. Add natural variety in sentence length, use contractions, and make it conversational. Return ONLY the rewritten text, nothing else:\n\n" },
+  { id: "format", label: "Format", category: "Transform", prompt: "Clean up the formatting of this text. Add proper paragraphs, punctuation, capitalization, and structure. Make it well-organized and readable. Return ONLY the formatted text, nothing else:\n\n" },
+  { id: "emojify", label: "Emoji-ify", category: "Transform", prompt: "Add relevant emojis throughout this text to make it more expressive and fun. Keep the original text intact, just add emojis. Return ONLY the text with emojis, nothing else:\n\n" },
+
+  // Generate
+  { id: "complete", label: "Complete", category: "Generate", prompt: "Continue and complete this text naturally. Return ONLY the original text plus your continuation, nothing else:\n\n" },
+  { id: "reply", label: "Draft Reply", category: "Generate", prompt: "Draft a concise, helpful reply to this message. Return ONLY the reply text, nothing else:\n\n" },
+  { id: "summarize", label: "Summarize", category: "Generate", prompt: "Summarize this text in one or two sentences. Return ONLY the summary, nothing else:\n\n" },
+  { id: "headline", label: "Headline", category: "Generate", prompt: "Generate a clear, compelling headline or subject line for this text. Return ONLY the headline, nothing else:\n\n" },
+  { id: "actions", label: "Action Items", category: "Generate", prompt: "Extract clear action items and to-dos from this text as a bulleted list. Return ONLY the action items, nothing else:\n\n" },
+  { id: "bullets", label: "Bullet List", category: "Generate", prompt: "Convert this text into clear bullet points. Return ONLY the bullet points, nothing else:\n\n" },
+  { id: "numbered", label: "Numbered List", category: "Generate", prompt: "Convert this text into a numbered list. Return ONLY the numbered list, nothing else:\n\n" },
+
+  // Translate
+  { id: "english", label: "English", category: "Translate", prompt: "Translate this text to English. Return ONLY the translation, nothing else:\n\n" },
+  { id: "french", label: "French", category: "Translate", prompt: "Translate this text to French. Return ONLY the translation, nothing else:\n\n" },
+  { id: "spanish", label: "Spanish", category: "Translate", prompt: "Translate this text to Spanish. Return ONLY the translation, nothing else:\n\n" },
+  { id: "german", label: "German", category: "Translate", prompt: "Translate this text to German. Return ONLY the translation, nothing else:\n\n" },
+  { id: "japanese", label: "Japanese", category: "Translate", prompt: "Translate this text to Japanese. Return ONLY the translation, nothing else:\n\n" },
+  { id: "chinese", label: "Chinese", category: "Translate", prompt: "Translate this text to Chinese. Return ONLY the translation, nothing else:\n\n" },
+  { id: "portuguese", label: "Portuguese", category: "Translate", prompt: "Translate this text to Portuguese. Return ONLY the translation, nothing else:\n\n" },
+  { id: "korean", label: "Korean", category: "Translate", prompt: "Translate this text to Korean. Return ONLY the translation, nothing else:\n\n" },
+  { id: "hindi", label: "Hindi", category: "Translate", prompt: "Translate this text to Hindi. Return ONLY the translation, nothing else:\n\n" },
+  { id: "arabic", label: "Arabic", category: "Translate", prompt: "Translate this text to Arabic. Return ONLY the translation, nothing else:\n\n" },
+];
 
 // ============================================
 // CROSS-FRAME MESSAGING (for Google Docs/Drive iframes)
@@ -93,6 +140,8 @@ function handleCrossFrameMessage(event) {
     chrome.storage.local.get(["settings", "notes"], (data) => {
       if (chrome.runtime.lastError) return;
       state.notes = data.notes || {};
+      const _s1 = data.settings || {};
+      state.aiSettings = { provider: _s1.aiProvider, model: _s1.aiModel, key: _s1.key, customBaseUrl: _s1.customBaseUrl || "" };
       state.lastFocusedElement = null; // No specific element, will center popup
       state.isCrossFramePopup = true; // Flag to handle note selection differently
       showPopup();
@@ -506,6 +555,8 @@ function handleInput(event) {
     setTimeout(() => {
       chrome.storage.local.get(["settings", "notes"], (data) => {
         state.notes = data.notes || {};
+        const _s = data.settings || {};
+        state.aiSettings = { provider: _s.aiProvider, model: _s.aiModel, key: _s.key, customBaseUrl: _s.customBaseUrl || "" };
         showPopup();
       });
     }, 50);
@@ -596,6 +647,8 @@ function handleGlobalKeydown(event) {
           chrome.storage.local.get(["settings", "notes"], (data) => {
             if (chrome.runtime.lastError) return;
             state.notes = data.notes || {};
+            const _s2 = data.settings || {};
+            state.aiSettings = { provider: _s2.aiProvider, model: _s2.aiModel, key: _s2.key, customBaseUrl: _s2.customBaseUrl || "" };
             showPopup();
           });
         } catch (error) {
@@ -632,6 +685,8 @@ function handleGlobalKeydown(event) {
             chrome.storage.local.get(["settings", "notes"], (data) => {
               if (chrome.runtime.lastError) return;
               state.notes = data.notes || {};
+              const _s3 = data.settings || {};
+              state.aiSettings = { provider: _s3.aiProvider, model: _s3.aiModel, key: _s3.key, customBaseUrl: _s3.customBaseUrl || "" };
               showPopup();
             });
           } catch (error) {
@@ -693,6 +748,8 @@ function handleGlobalKeydown(event) {
           chrome.storage.local.get(["settings", "notes"], (data) => {
             if (chrome.runtime.lastError) return;
             state.notes = data.notes || {};
+            const _s4 = data.settings || {};
+            state.aiSettings = { provider: _s4.aiProvider, model: _s4.aiModel, key: _s4.key, customBaseUrl: _s4.customBaseUrl || "" };
             showPopup();
           });
         } catch (error) {
@@ -1168,14 +1225,17 @@ function updateResults() {
   const filterType = state.popupFilterType || "both";
   const sortType = state.popupSortType || null;
   const matches = filterNotes(query, filterType, sortType);
+  const commandMatches = filterCommands(query);
 
-  // Reset selected index to 0 when search query changes
-  state.selectedIndex = 0;
+  // Reset selected index to 0 when search query changes (but not during command execution)
+  if (!state.isCommandRunning) {
+    state.selectedIndex = 0;
+  }
 
-  renderResults(list, matches, query);
+  renderResults(list, matches, query, commandMatches);
 
   // Auto-scroll to the first result if there are any matches
-  if (matches.length > 0 && list.children.length > 0) {
+  if ((matches.length > 0 || commandMatches.length > 0) && list.children.length > 0) {
     list.children[0].scrollIntoView({ block: "nearest" });
   }
 }
@@ -1269,12 +1329,267 @@ function filterNotes(query, filterType = "both", sortType = null) {
     });
 }
 
-function renderResults(list, matches, query = "") {
+function filterCommands(query) {
+  const normalizedQuery = query.toLowerCase();
+
+  return COMMANDS.filter((cmd) => {
+    if (!normalizedQuery) return true; // Show all when no query
+    return (
+      cmd.id.includes(normalizedQuery) ||
+      cmd.label.toLowerCase().includes(normalizedQuery) ||
+      cmd.category.toLowerCase().includes(normalizedQuery)
+    );
+  }).sort((a, b) => {
+    if (!normalizedQuery) return 0; // Keep original order when no query
+    // Exact id match first
+    const aExact = a.id === normalizedQuery ? 1 : 0;
+    const bExact = b.id === normalizedQuery ? 1 : 0;
+    if (aExact !== bExact) return bExact - aExact;
+    // Then id startsWith
+    const aStarts = a.id.startsWith(normalizedQuery) ? 1 : 0;
+    const bStarts = b.id.startsWith(normalizedQuery) ? 1 : 0;
+    if (aStarts !== bStarts) return bStarts - aStarts;
+    // Then label startsWith
+    const aLabelStarts = a.label.toLowerCase().startsWith(normalizedQuery) ? 1 : 0;
+    const bLabelStarts = b.label.toLowerCase().startsWith(normalizedQuery) ? 1 : 0;
+    return bLabelStarts - aLabelStarts;
+  });
+}
+
+function getTextBeforeSlash() {
+  const value = getValue(state.lastFocusedElement);
+  const lastSlash = value.lastIndexOf("/");
+  if (lastSlash >= 0) return value.substring(0, lastSlash).trim();
+  return value.trim();
+}
+
+async function callAIForCommand(systemPrompt, contextText) {
+  const { provider, model, key, customBaseUrl } = state.aiSettings;
+  const fullPrompt = systemPrompt + contextText;
+
+  const stripQuotes = (s) => s.replace(/^["'`]+|["'`]+$/g, "");
+
+  switch (provider) {
+    case "gemini": {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-goog-api-key": key,
+          },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: fullPrompt }] }],
+          }),
+        },
+      );
+      const data = await response.json();
+      if (!response.ok || !data.candidates || !data.candidates[0]) {
+        throw new Error("Gemini API error");
+      }
+      return stripQuotes(data.candidates[0].content.parts[0].text.trim());
+    }
+
+    case "openai": {
+      const response = await fetch(
+        "https://api.openai.com/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${key}`,
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [{ role: "user", content: fullPrompt }],
+            temperature: 0.7,
+          }),
+        },
+      );
+      const data = await response.json();
+      if (!response.ok || !data.choices || !data.choices[0]) {
+        throw new Error("OpenAI API error");
+      }
+      return stripQuotes(data.choices[0].message.content.trim());
+    }
+
+    case "anthropic": {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": key,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
+        body: JSON.stringify({
+          model: model,
+          max_tokens: 1024,
+          messages: [{ role: "user", content: fullPrompt }],
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.content || !data.content[0]) {
+        throw new Error("Anthropic API error");
+      }
+      return stripQuotes(data.content[0].text.trim());
+    }
+
+    case "groq": {
+      const response = await fetch(
+        "https://api.groq.com/openai/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${key}`,
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [{ role: "user", content: fullPrompt }],
+            temperature: 0.7,
+          }),
+        },
+      );
+      const data = await response.json();
+      if (!response.ok || !data.choices || !data.choices[0]) {
+        throw new Error("Groq API error");
+      }
+      return stripQuotes(data.choices[0].message.content.trim());
+    }
+
+    case "custom": {
+      const baseUrl = (customBaseUrl || "").replace(/\/+$/, "");
+      const endpoint = `${baseUrl}/v1/chat/completions`;
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${key}`,
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [{ role: "user", content: fullPrompt }],
+          temperature: 0.7,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.choices || !data.choices[0]) {
+        throw new Error("Custom API error");
+      }
+      return stripQuotes(data.choices[0].message.content.trim());
+    }
+
+    default:
+      throw new Error(`Unknown provider: ${provider}`);
+  }
+}
+
+async function executeCommand(command) {
+  const ai = state.aiSettings;
+  if (!ai || !ai.key || !ai.provider || ai.provider === "none" || !ai.model) {
+    showToast("AI not configured", "Open new tab and click top right button!");
+    return;
+  }
+
+  const contextText = getTextBeforeSlash();
+
+  if (!contextText) {
+    showToast("No text to transform", "Type some text before /command");
+    return;
+  }
+
+  // Show loading state
+  state.isCommandRunning = true;
+  state.activeCommandId = command.id;
+  updateResults(); // Re-render to show spinner
+
+  try {
+    const result = await callAIForCommand(command.prompt, contextText);
+    // Save element ref before closePopup clears state
+    const savedElement = state.lastFocusedElement;
+    const savedRange = state.savedRange;
+    closePopup();
+    state.lastFocusedElement = savedElement;
+    state.savedRange = savedRange;
+    replaceAllText(result.trim());
+  } catch (e) {
+    state.isCommandRunning = false;
+    state.activeCommandId = null;
+    updateResults(); // Remove spinner
+    showToast("Command Failed", e.message || "AI request failed");
+  }
+}
+
+function replaceAllText(text) {
+  const el = state.lastFocusedElement;
+  if (!el) return;
+
+  // Set flag to prevent popup from reopening during replacement
+  state.isPasting = true;
+
+  if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
+    el.value = text;
+
+    // React compatibility
+    const nativeSetter = Object.getOwnPropertyDescriptor(
+      el.tagName === "INPUT"
+        ? HTMLInputElement.prototype
+        : HTMLTextAreaElement.prototype,
+      "value",
+    )?.set;
+    if (nativeSetter) {
+      nativeSetter.call(el, text);
+    }
+
+    // Move cursor to end
+    const cursorPosition = text.length;
+    el.setSelectionRange(cursorPosition, cursorPosition);
+
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+    el.focus();
+
+    const restoreInputCursor = () => {
+      try {
+        el.setSelectionRange(cursorPosition, cursorPosition);
+      } catch (e) {}
+    };
+    restoreInputCursor();
+    setTimeout(restoreInputCursor, 0);
+    setTimeout(restoreInputCursor, 50);
+
+    state.previousValue = getValue(el);
+    setTimeout(() => {
+      state.isPasting = false;
+    }, 100);
+  } else if (el.isContentEditable) {
+    el.focus();
+
+    // Select all content and replace
+    document.execCommand("selectAll", false);
+    document.execCommand("insertText", false, text);
+
+    state.previousValue = getValue(el);
+
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+
+    setTimeout(() => {
+      state.isPasting = false;
+    }, 100);
+  } else {
+    state.isPasting = false;
+  }
+}
+
+function renderResults(list, matches, query = "", commandMatches = []) {
   list.innerHTML = "";
 
-  if (matches.length === 0) {
+  if (matches.length === 0 && commandMatches.length === 0) {
     const empty = document.createElement("li");
-    empty.textContent = "No matching notes";
+    empty.textContent = "No matching notes or commands";
     empty.style.cssText = `
       padding: 12px;
       text-align: center;
@@ -1382,6 +1697,41 @@ function renderResults(list, matches, query = "") {
     matches.forEach(addNoteItem);
   }
 
+  // Render commands section
+  if (commandMatches.length > 0) {
+    addSectionHeader("Commands");
+    commandMatches.forEach((cmd) => {
+      const li = document.createElement("li");
+      li.className = "blocknotes-item blocknotes-command";
+      li.dataset.commandId = cmd.id;
+
+      const isRunning = state.isCommandRunning && state.activeCommandId === cmd.id;
+      const spinnerHtml = isRunning
+        ? `<span class="blocknotes-spinner" style="width: 14px; height: 14px; border: 2px solid #ffffff33; border-top-color: #8b5cf6; border-radius: 50%; display: inline-block; animation: blocknotes-spin 0.6s linear infinite; flex-shrink: 0;"></span>`
+        : "";
+
+      li.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-weight: 600; font-size: 13px; color: #f1f5f9; flex: 1;">${escapeHtml(cmd.label)}</span>
+          <span style="font-size: 9px; padding: 1px 6px; background: #334155; color: #8b5cf6; border-radius: 4px; font-weight: 600; flex-shrink: 0;">${escapeHtml(cmd.category)}</span>
+          ${spinnerHtml}
+        </div>
+      `;
+
+      const currentIndex = selectableIndex;
+      li.style.cssText = getCommandItemStyles(currentIndex === state.selectedIndex);
+
+      li.addEventListener("mouseenter", () => selectItem(currentIndex));
+      li.addEventListener("click", () => {
+        if (state.isCommandRunning) return;
+        executeCommand(cmd);
+      });
+
+      list.appendChild(li);
+      selectableIndex++;
+    });
+  }
+
   // Ensure selected is visible
   const selectableItems = list.querySelectorAll(".blocknotes-item");
   const selected = selectableItems[state.selectedIndex];
@@ -1402,6 +1752,18 @@ function getItemStyles(isSelected) {
   `; // #1e293b
 }
 
+function getCommandItemStyles(isSelected) {
+  return `
+    padding: 7px 10px;
+    margin: 2px 0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    background: ${isSelected ? "#20324b" : "#20324bd4"};
+    border-left: ${isSelected ? "4px solid #8b5cf6" : "2px solid transparent"};
+  `;
+}
+
 function selectItem(index) {
   state.selectedIndex = index;
   const list = state.popupContainer?.querySelector(".blocknotes-list");
@@ -1409,7 +1771,10 @@ function selectItem(index) {
 
   const selectableItems = list.querySelectorAll(".blocknotes-item");
   selectableItems.forEach((item, i) => {
-    item.style.cssText = getItemStyles(i === index);
+    const isCommand = item.classList.contains("blocknotes-command");
+    item.style.cssText = isCommand
+      ? getCommandItemStyles(i === index)
+      : getItemStyles(i === index);
   });
 
   // Scroll to selected item
@@ -1441,24 +1806,38 @@ function handlePopupKeydown(event) {
     case "Enter":
       event.preventDefault();
       event.stopImmediatePropagation(); // Prevent Google Docs from handling
-      const enterQuery = extractQuery();
-      const enterFilterType = state.popupFilterType || "both";
-      const enterSortType = state.popupSortType || null;
-      const matches = filterNotes(enterQuery, enterFilterType, enterSortType);
-      if (matches[state.selectedIndex]) {
-        const noteText = matches[state.selectedIndex].noteText;
-        const noteIndex = matches[state.selectedIndex].noteIndex;
-        // Save state before closePopup clears it
-        const savedElement = state.lastFocusedElement;
-        const savedRange = state.savedRange;
-        saveCurrentPopupPosition();
-        // Close popup BEFORE handling note insertion to prevent focus conflicts
-        closePopup();
-        // Restore state for handleNoteInsertion
-        state.lastFocusedElement = savedElement;
-        state.savedRange = savedRange;
-        handleNoteInsertion(noteText);
-        incrementNoteUsage(noteIndex);
+      if (state.isCommandRunning) break; // Don't allow selection while command is running
+
+      // Check if the selected item is a command or a note
+      const selectedItem = list?.querySelectorAll(".blocknotes-item")?.[state.selectedIndex];
+      if (selectedItem && selectedItem.classList.contains("blocknotes-command")) {
+        // It's a command
+        const cmdId = selectedItem.dataset.commandId;
+        const cmd = COMMANDS.find((c) => c.id === cmdId);
+        if (cmd) {
+          executeCommand(cmd);
+        }
+      } else {
+        // It's a note (existing behavior)
+        const enterQuery = extractQuery();
+        const enterFilterType = state.popupFilterType || "both";
+        const enterSortType = state.popupSortType || null;
+        const noteMatches = filterNotes(enterQuery, enterFilterType, enterSortType);
+        if (noteMatches[state.selectedIndex]) {
+          const noteText = noteMatches[state.selectedIndex].noteText;
+          const noteIndex = noteMatches[state.selectedIndex].noteIndex;
+          // Save state before closePopup clears it
+          const savedElement = state.lastFocusedElement;
+          const savedRange = state.savedRange;
+          saveCurrentPopupPosition();
+          // Close popup BEFORE handling note insertion to prevent focus conflicts
+          closePopup();
+          // Restore state for handleNoteInsertion
+          state.lastFocusedElement = savedElement;
+          state.savedRange = savedRange;
+          handleNoteInsertion(noteText);
+          incrementNoteUsage(noteIndex);
+        }
       }
       break;
 
@@ -1584,6 +1963,8 @@ function closePopup() {
   state.popupFilterType = "both"; // Reset filter state
   state.popupSortType = null; // Reset sort state
   state.popupSearchQuery = ""; // Reset search query
+  state.isCommandRunning = false; // Reset command state
+  state.activeCommandId = null;
 
   // Restore focus after state cleanup
   if (isGoogleDocs) {
@@ -3643,8 +4024,14 @@ function addStyles() {
     .blocknotes-item:hover {
       background: #20324b !important;
     }
+    .blocknotes-command:hover {
+      background: #20324b !important;
+    }
     .blocknotes-header:active {
       cursor: grabbing !important;
+    }
+    @keyframes blocknotes-spin {
+      to { transform: rotate(360deg); }
     }
   `;
   document.head.appendChild(style);
@@ -3731,7 +4118,7 @@ function showQuickSaveButton() {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
     transition: all 0.2s ease !important;
     animation: quickSaveFadeIn 0.2s ease !important;
-    backdrop-filter: blur(20px) saturate(140%) !important;
+    backdrop-filter: blur(4px) saturate(140%) !important;
     isolation: isolate !important;
   `;
 
