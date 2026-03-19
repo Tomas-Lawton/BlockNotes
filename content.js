@@ -38,45 +38,98 @@ const state = {
 // ============================================
 // AI COMMANDS
 // ============================================
+const COMMAND_CATEGORY_COLORS = {
+  Tone: "#f472b6",       // pink
+  Transform: "#8b5cf6",  // purple
+  Extract: "#38bdf8",    // sky blue
+  Draft: "#34d399",      // emerald
+  Communicate: "#fb923c", // orange
+  Social: "#f43f5e",     // rose
+  Translate: "#a78bfa",  // violet
+  Code: "#22d3ee",       // cyan
+  AI: "#facc15",         // yellow
+};
+
 const COMMANDS = [
-  // Tone
-  { id: "formal", label: "Make Formal", category: "Tone", prompt: "Rewrite this text in a formal, professional tone. Return ONLY the rewritten text, nothing else:\n\n" },
-  { id: "casual", label: "Make Casual", category: "Tone", prompt: "Rewrite this text in a casual, relaxed tone. Return ONLY the rewritten text, nothing else:\n\n" },
-  { id: "confident", label: "Make Confident", category: "Tone", prompt: "Rewrite this text to sound more confident and assertive. Remove hedging words like 'maybe', 'I think', 'perhaps', 'might'. Return ONLY the rewritten text, nothing else:\n\n" },
-  { id: "diplomatic", label: "Make Diplomatic", category: "Tone", prompt: "Rewrite this text to be more diplomatic and tactful. Soften any blunt or harsh language while preserving the core message. Add politeness and consideration. Return ONLY the rewritten text, nothing else:\n\n" },
-  { id: "direct", label: "Make Direct", category: "Tone", prompt: "Rewrite this text to be concise and direct. Remove filler words, unnecessary qualifiers, and fluff. Get straight to the point. Return ONLY the rewritten text, nothing else:\n\n" },
+  // Tone — change voice/style of existing text
+  { id: "formal", label: "Formal", desc: "Rewrites in a professional tone", category: "Tone", requiresContext: true, prompt: "Rewrite this text in a formal, professional tone. Return ONLY the rewritten text, nothing else:\n\n" },
+  { id: "casual", label: "Casual", desc: "Rewrites in a relaxed tone", category: "Tone", requiresContext: true, prompt: "Rewrite this text in a casual, relaxed tone. Return ONLY the rewritten text, nothing else:\n\n" },
+  { id: "confident", label: "Confident", desc: "Removes hedging, sounds assertive", category: "Tone", requiresContext: true, prompt: "Rewrite this text to sound more confident and assertive. Remove hedging words like 'maybe', 'I think', 'perhaps', 'might'. Return ONLY the rewritten text, nothing else:\n\n" },
+  { id: "diplomatic", label: "Diplomatic", desc: "Softens language, adds tact", category: "Tone", requiresContext: true, prompt: "Rewrite this text to be more diplomatic and tactful. Soften any blunt or harsh language while preserving the core message. Add politeness and consideration. Return ONLY the rewritten text, nothing else:\n\n" },
+  { id: "direct", label: "Direct", desc: "Cuts filler, gets to the point", category: "Tone", requiresContext: true, prompt: "Rewrite this text to be concise and direct. Remove filler words, unnecessary qualifiers, and fluff. Get straight to the point. Return ONLY the rewritten text, nothing else:\n\n" },
 
-  // Transform
-  { id: "shorten", label: "Shorten", category: "Transform", prompt: "Make this text shorter and more concise while keeping the meaning. Return ONLY the shortened text, nothing else:\n\n" },
-  { id: "expand", label: "Expand", category: "Transform", prompt: "Expand this text with more detail while keeping the same tone. Return ONLY the expanded text, nothing else:\n\n" },
-  { id: "fix", label: "Fix Grammar", category: "Transform", prompt: "Fix any grammar, spelling, and punctuation errors in this text. Return ONLY the corrected text, nothing else:\n\n" },
-  { id: "proofread", label: "Proofread", category: "Transform", prompt: "Proofread this text thoroughly. Fix grammar, spelling, punctuation, awkward phrasing, and word choice issues. Improve clarity and flow. Return ONLY the improved text, nothing else:\n\n" },
-  { id: "simplify", label: "Simplify", category: "Transform", prompt: "Simplify this text so it's easy to understand. Return ONLY the simplified text, nothing else:\n\n" },
-  { id: "eli5", label: "ELI5", category: "Transform", prompt: "Rewrite this text as if explaining it to a 5-year-old. Use simple words and short sentences. Return ONLY the rewritten text, nothing else:\n\n" },
-  { id: "humanize", label: "Humanize", category: "Transform", prompt: "Rewrite this text to sound more natural and human. Remove robotic or AI-sounding patterns. Add natural variety in sentence length, use contractions, and make it conversational. Return ONLY the rewritten text, nothing else:\n\n" },
-  { id: "format", label: "Format", category: "Transform", prompt: "Clean up the formatting of this text. Add proper paragraphs, punctuation, capitalization, and structure. Make it well-organized and readable. Return ONLY the formatted text, nothing else:\n\n" },
-  { id: "emojify", label: "Emoji-ify", category: "Transform", prompt: "Add relevant emojis throughout this text to make it more expressive and fun. Keep the original text intact, just add emojis. Return ONLY the text with emojis, nothing else:\n\n" },
+  // Transform — edit and modify existing text
+  { id: "shorten", label: "Shorten", desc: "Makes text more concise", category: "Transform", requiresContext: true, prompt: "Make this text shorter and more concise while keeping the meaning. Return ONLY the shortened text, nothing else:\n\n" },
+  { id: "expand", label: "Expand", desc: "Adds more detail and depth", category: "Transform", requiresContext: true, prompt: "Expand this text with more detail while keeping the same tone. Return ONLY the expanded text, nothing else:\n\n" },
+  { id: "fix", label: "Fix Grammar", desc: "Corrects spelling and grammar", category: "Transform", requiresContext: true, prompt: "Fix any grammar, spelling, and punctuation errors in this text. Return ONLY the corrected text, nothing else:\n\n" },
+  { id: "proofread", label: "Proofread", desc: "Thorough grammar and style check", category: "Transform", requiresContext: true, prompt: "Proofread this text thoroughly. Fix grammar, spelling, punctuation, awkward phrasing, and word choice issues. Improve clarity and flow. Return ONLY the improved text, nothing else:\n\n" },
+  { id: "simplify", label: "Simplify", desc: "Makes text easier to understand", category: "Transform", requiresContext: true, prompt: "Simplify this text so it's easy to understand. Return ONLY the simplified text, nothing else:\n\n" },
+  { id: "humanize", label: "Humanize", desc: "Makes text sound more natural", category: "Transform", requiresContext: true, prompt: "Rewrite this text to sound more natural and human. Remove robotic or AI-sounding patterns. Add natural variety in sentence length, use contractions, and make it conversational. Return ONLY the rewritten text, nothing else:\n\n" },
+  { id: "format", label: "Format", desc: "Cleans up structure and formatting", category: "Transform", requiresContext: true, prompt: "Clean up the formatting of this text. Add proper paragraphs, punctuation, capitalization, and structure. Make it well-organized and readable. Return ONLY the formatted text, nothing else:\n\n" },
+  { id: "rephrase", label: "Rephrase", desc: "Same meaning, different words", category: "Transform", requiresContext: true, prompt: "Rewrite this text using completely different wording while keeping the same meaning. Return ONLY the rephrased text, nothing else:\n\n" },
+  { id: "emojify", label: "Emoji-ify", desc: "Adds relevant emojis throughout", category: "Transform", requiresContext: true, prompt: "Add relevant emojis throughout this text to make it more expressive and fun. Keep the original text intact, just add emojis. Return ONLY the text with emojis, nothing else:\n\n" },
+  { id: "complete", label: "Complete", desc: "Continues and finishes the text", category: "Transform", requiresContext: true, prompt: "Continue and complete this text naturally. Return ONLY the original text plus your continuation, nothing else:\n\n" },
 
-  // Generate
-  { id: "complete", label: "Complete", category: "Generate", prompt: "Continue and complete this text naturally. Return ONLY the original text plus your continuation, nothing else:\n\n" },
-  { id: "reply", label: "Draft Reply", category: "Generate", prompt: "Draft a concise, helpful reply to this message. Return ONLY the reply text, nothing else:\n\n" },
-  { id: "summarize", label: "Summarize", category: "Generate", prompt: "Summarize this text in one or two sentences. Return ONLY the summary, nothing else:\n\n" },
-  { id: "headline", label: "Headline", category: "Generate", prompt: "Generate a clear, compelling headline or subject line for this text. Return ONLY the headline, nothing else:\n\n" },
-  { id: "actions", label: "Action Items", category: "Generate", prompt: "Extract clear action items and to-dos from this text as a bulleted list. Return ONLY the action items, nothing else:\n\n" },
-  { id: "bullets", label: "Bullet List", category: "Generate", prompt: "Convert this text into clear bullet points. Return ONLY the bullet points, nothing else:\n\n" },
-  { id: "numbered", label: "Numbered List", category: "Generate", prompt: "Convert this text into a numbered list. Return ONLY the numbered list, nothing else:\n\n" },
+  // Extract — pull info and restructure existing text
+  { id: "summarize", label: "Summarize", desc: "Condenses into one or two sentences", category: "Extract", requiresContext: true, prompt: "Summarize this text in one or two sentences. Return ONLY the summary, nothing else:\n\n" },
+  { id: "tldr", label: "TL;DR", desc: "Ultra-short one-line summary", category: "Extract", requiresContext: true, prompt: "Give an ultra-short TL;DR of this text in one sentence. Return ONLY the TL;DR, nothing else:\n\n" },
+  { id: "headline", label: "Headline", desc: "Generates a subject line or title", category: "Extract", requiresContext: true, prompt: "Generate a clear, compelling headline or subject line for this text. Return ONLY the headline, nothing else:\n\n" },
+  { id: "explain", label: "Explain", desc: "Breaks down in simple terms", category: "Extract", requiresContext: true, prompt: "Explain what this text means in clear, simple terms. Break down any complex concepts. Return ONLY the explanation, nothing else:\n\n" },
+  { id: "eli5", label: "ELI5", desc: "Explains like you're five", category: "Extract", requiresContext: true, prompt: "Rewrite this text as if explaining it to a 5-year-old. Use simple words and short sentences. Return ONLY the rewritten text, nothing else:\n\n" },
+  { id: "actions", label: "Action Items", desc: "Extracts to-dos as a list", category: "Extract", requiresContext: true, prompt: "Extract clear action items and to-dos from this text as a bulleted list. Return ONLY the action items, nothing else:\n\n" },
+  { id: "bullets", label: "Bullet List", desc: "Converts text to bullet points", category: "Extract", requiresContext: true, prompt: "Convert this text into clear bullet points. Return ONLY the bullet points, nothing else:\n\n" },
+  { id: "numbered", label: "Numbered List", desc: "Converts text to a numbered list", category: "Extract", requiresContext: true, prompt: "Convert this text into a numbered list. Return ONLY the numbered list, nothing else:\n\n" },
+  { id: "proscons", label: "Pros & Cons", desc: "Creates a balanced pros/cons list", category: "Extract", requiresContext: true, prompt: "Create a balanced pros and cons list for the following. Return ONLY the pros and cons list, nothing else:\n\n" },
 
-  // Translate
-  { id: "english", label: "English", category: "Translate", prompt: "Translate this text to English. Return ONLY the translation, nothing else:\n\n" },
-  { id: "french", label: "French", category: "Translate", prompt: "Translate this text to French. Return ONLY the translation, nothing else:\n\n" },
-  { id: "spanish", label: "Spanish", category: "Translate", prompt: "Translate this text to Spanish. Return ONLY the translation, nothing else:\n\n" },
-  { id: "german", label: "German", category: "Translate", prompt: "Translate this text to German. Return ONLY the translation, nothing else:\n\n" },
-  { id: "japanese", label: "Japanese", category: "Translate", prompt: "Translate this text to Japanese. Return ONLY the translation, nothing else:\n\n" },
-  { id: "chinese", label: "Chinese", category: "Translate", prompt: "Translate this text to Chinese. Return ONLY the translation, nothing else:\n\n" },
-  { id: "portuguese", label: "Portuguese", category: "Translate", prompt: "Translate this text to Portuguese. Return ONLY the translation, nothing else:\n\n" },
-  { id: "korean", label: "Korean", category: "Translate", prompt: "Translate this text to Korean. Return ONLY the translation, nothing else:\n\n" },
-  { id: "hindi", label: "Hindi", category: "Translate", prompt: "Translate this text to Hindi. Return ONLY the translation, nothing else:\n\n" },
-  { id: "arabic", label: "Arabic", category: "Translate", prompt: "Translate this text to Arabic. Return ONLY the translation, nothing else:\n\n" },
+  // Draft — write fresh content from a topic
+  { id: "draft", label: "Draft Message", desc: "Writes a concise message", category: "Draft", requiresContext: false, prompt: "Write a message about the following topic. Keep it concise and natural. Return ONLY the message, nothing else:\n\n" },
+  { id: "email", label: "Email", desc: "Drafts a professional email", category: "Draft", requiresContext: false, prompt: "Write a professional email about the following topic. Include a greeting, body, and sign-off. Return ONLY the email, nothing else:\n\n" },
+  { id: "reply", label: "Reply", desc: "Drafts a reply to this message", category: "Draft", requiresContext: true, prompt: "Draft a concise, helpful reply to this message. Return ONLY the reply text, nothing else:\n\n" },
+  { id: "brainstorm", label: "Brainstorm", desc: "Generates creative ideas", category: "Draft", requiresContext: false, prompt: "Brainstorm creative ideas about the following topic. Return a bulleted list of ideas, nothing else:\n\n" },
+  { id: "cta", label: "Call to Action", desc: "Creates a compelling CTA", category: "Draft", requiresContext: true, prompt: "Generate a compelling call-to-action from this text. Return ONLY the call-to-action, nothing else:\n\n" },
+  { id: "agenda", label: "Meeting Agenda", desc: "Generates a structured agenda", category: "Draft", requiresContext: false, prompt: "Generate a structured meeting agenda from the following topics or notes. Include time estimates. Return ONLY the agenda, nothing else:\n\n" },
+  { id: "event", label: "Event Description", desc: "Writes an event description", category: "Draft", requiresContext: false, prompt: "Draft an engaging event description for the following. Include what, when, why, and what to expect. Return ONLY the description, nothing else:\n\n" },
+
+  // Communicate — message templates for specific situations
+  { id: "apology", label: "Apology", desc: "Drafts a sincere apology", category: "Communicate", requiresContext: false, prompt: "Draft a sincere apology message about the following situation. Be genuine and take responsibility. Return ONLY the message, nothing else:\n\n" },
+  { id: "thankyou", label: "Thank You", desc: "Writes a warm thank you note", category: "Communicate", requiresContext: false, prompt: "Draft a warm, genuine thank you message about the following. Return ONLY the message, nothing else:\n\n" },
+  { id: "decline", label: "Politely Decline", desc: "Declines a request gracefully", category: "Communicate", requiresContext: false, prompt: "Draft a polite, respectful message declining the following request. Be kind but clear. Return ONLY the message, nothing else:\n\n" },
+  { id: "followup", label: "Follow Up", desc: "Sends a friendly follow-up", category: "Communicate", requiresContext: false, prompt: "Draft a friendly follow-up message about the following. Return ONLY the message, nothing else:\n\n" },
+  { id: "introduce", label: "Introduction", desc: "Writes a professional intro", category: "Communicate", requiresContext: false, prompt: "Draft a professional introduction message based on the following context. Return ONLY the message, nothing else:\n\n" },
+  { id: "congratulate", label: "Congratulations", desc: "Writes a congratulations message", category: "Communicate", requiresContext: false, prompt: "Draft a warm, genuine congratulations message about the following. Return ONLY the message, nothing else:\n\n" },
+  { id: "feedback", label: "Give Feedback", desc: "Drafts constructive feedback", category: "Communicate", requiresContext: false, prompt: "Draft constructive, balanced feedback about the following. Be specific and helpful. Return ONLY the feedback, nothing else:\n\n" },
+  { id: "recommend", label: "Recommendation", desc: "Writes a strong endorsement", category: "Communicate", requiresContext: false, prompt: "Draft a strong recommendation or endorsement based on the following. Return ONLY the recommendation, nothing else:\n\n" },
+  { id: "invite", label: "Invitation", desc: "Drafts an event invitation", category: "Communicate", requiresContext: false, prompt: "Draft a clear, inviting invitation to the following event or meeting. Include key details. Return ONLY the invitation, nothing else:\n\n" },
+  { id: "announce", label: "Announcement", desc: "Writes a clear announcement", category: "Communicate", requiresContext: false, prompt: "Draft a clear, engaging announcement about the following. Return ONLY the announcement, nothing else:\n\n" },
+  { id: "condolence", label: "Condolence", desc: "Writes a heartfelt condolence", category: "Communicate", requiresContext: false, prompt: "Draft a sincere, compassionate condolence message about the following. Be heartfelt and respectful. Return ONLY the message, nothing else:\n\n" },
+  { id: "negotiate", label: "Negotiate", desc: "Drafts a negotiation message", category: "Communicate", requiresContext: false, prompt: "Draft a professional negotiation message about the following. Be confident but reasonable. Return ONLY the message, nothing else:\n\n" },
+  { id: "reminder", label: "Polite Reminder", desc: "Sends a gentle reminder", category: "Communicate", requiresContext: false, prompt: "Draft a polite, friendly reminder about the following. Be firm but not pushy. Return ONLY the message, nothing else:\n\n" },
+  { id: "breakup", label: "End Professionally", desc: "Ends a business relationship politely", category: "Communicate", requiresContext: false, prompt: "Draft a professional message ending a business relationship, cancelling a service, or stepping away from the following situation. Be diplomatic and respectful. Return ONLY the message, nothing else:\n\n" },
+
+  // Social — social media content
+  { id: "linkedin", label: "LinkedIn Post", desc: "Writes an engaging LinkedIn post", category: "Social", requiresContext: false, prompt: "Write an engaging LinkedIn post about the following topic. Use a professional but personable tone. Include relevant hashtags. Return ONLY the post, nothing else:\n\n" },
+  { id: "tweet", label: "Tweet / X Post", desc: "Writes a tweet under 280 chars", category: "Social", requiresContext: false, prompt: "Write a compelling tweet about the following topic. Keep it under 280 characters. Return ONLY the tweet, nothing else:\n\n" },
+  { id: "instagram", label: "Instagram Caption", desc: "Writes a caption with hashtags", category: "Social", requiresContext: false, prompt: "Write an engaging Instagram caption about the following topic. Include relevant emojis and hashtags. Return ONLY the caption, nothing else:\n\n" },
+
+  // Translate — language translation
+  { id: "english", label: "English", desc: "Translates text into English", category: "Translate", requiresContext: true, prompt: "Translate this text to English. Return ONLY the translation, nothing else:\n\n" },
+  { id: "french", label: "French", desc: "Translates text into French", category: "Translate", requiresContext: true, prompt: "Translate this text to French. Return ONLY the translation, nothing else:\n\n" },
+  { id: "spanish", label: "Spanish", desc: "Translates text into Spanish", category: "Translate", requiresContext: true, prompt: "Translate this text to Spanish. Return ONLY the translation, nothing else:\n\n" },
+  { id: "german", label: "German", desc: "Translates text into German", category: "Translate", requiresContext: true, prompt: "Translate this text to German. Return ONLY the translation, nothing else:\n\n" },
+  { id: "japanese", label: "Japanese", desc: "Translates text into Japanese", category: "Translate", requiresContext: true, prompt: "Translate this text to Japanese. Return ONLY the translation, nothing else:\n\n" },
+  { id: "chinese", label: "Chinese", desc: "Translates text into Chinese", category: "Translate", requiresContext: true, prompt: "Translate this text to Chinese. Return ONLY the translation, nothing else:\n\n" },
+  { id: "portuguese", label: "Portuguese", desc: "Translates text into Portuguese", category: "Translate", requiresContext: true, prompt: "Translate this text to Portuguese. Return ONLY the translation, nothing else:\n\n" },
+  { id: "korean", label: "Korean", desc: "Translates text into Korean", category: "Translate", requiresContext: true, prompt: "Translate this text to Korean. Return ONLY the translation, nothing else:\n\n" },
+  { id: "hindi", label: "Hindi", desc: "Translates text into Hindi", category: "Translate", requiresContext: true, prompt: "Translate this text to Hindi. Return ONLY the translation, nothing else:\n\n" },
+  { id: "arabic", label: "Arabic", desc: "Translates text into Arabic", category: "Translate", requiresContext: true, prompt: "Translate this text to Arabic. Return ONLY the translation, nothing else:\n\n" },
+
+  // Code — programming helpers
+  { id: "code", label: "Write Code", desc: "Generates code from a description", category: "Code", requiresContext: false, prompt: "Write code based on the following description. Return ONLY the code, nothing else:\n\n" },
+  { id: "regex", label: "Regex", desc: "Generates a regex pattern", category: "Code", requiresContext: false, prompt: "Generate a regular expression pattern for the following description. Return ONLY the regex pattern, nothing else:\n\n" },
+  { id: "sql", label: "SQL Query", desc: "Generates a SQL query", category: "Code", requiresContext: false, prompt: "Generate a SQL query for the following description. Return ONLY the SQL query, nothing else:\n\n" },
+
+  // AI — freeform prompt
+  { id: "prompt", label: "Prompt", desc: "Runs any custom AI instruction", category: "AI", requiresContext: false, prompt: "Follow these instructions exactly. Return ONLY the result, nothing else:\n\n" },
 ];
 
 // ============================================
@@ -505,8 +558,11 @@ function handleInput(event) {
 
   // --- Close popup if space typed right after slash OR backspace removes slash ---
   if (state.isPopupOpen) {
-    const lastSlashIndex = value.lastIndexOf("/");
-    const lastSpaceIndex = value.lastIndexOf(" ");
+    // Use cursor-aware text so content after cursor (e.g., Gmail quoted replies)
+    // doesn't interfere with slash detection
+    const cursorValue = getValueUpToCursor(event.target);
+    const lastSlashIndex = cursorValue.lastIndexOf("/");
+    const lastSpaceIndex = cursorValue.lastIndexOf(" ");
 
     // Close if space typed right after slash
     if (lastSlashIndex >= 0 && lastSpaceIndex === lastSlashIndex + 1) {
@@ -515,14 +571,7 @@ function handleInput(event) {
     }
 
     // Close if slash was removed (backspace)
-    // Check if previous value had "/" but current doesn't
-    if (previousValue.includes("/") && !value.includes("/")) {
-      closePopup();
-      return;
-    }
-
-    // Close if no slash found at all
-    if (!value.includes("/")) {
+    if (!cursorValue.includes("/")) {
       closePopup();
       return;
     }
@@ -782,6 +831,46 @@ function getValue(el) {
   return el.tagName === "INPUT" || el.tagName === "TEXTAREA"
     ? el.value
     : el.textContent;
+}
+
+// Returns text from element start up to the cursor position.
+// For contenteditable, this avoids including content after cursor
+// (e.g., Gmail quoted reply text, signatures) which can contain
+// slashes that break extractQuery().
+function getValueUpToCursor(el) {
+  if (!el) return "";
+
+  if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
+    const pos = el.selectionStart ?? el.value.length;
+    return el.value.substring(0, pos);
+  }
+
+  // For contenteditable, get text from start of element to cursor
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount > 0 && el.contains(sel.anchorNode)) {
+    try {
+      const range = document.createRange();
+      range.setStart(el, 0);
+      range.setEnd(sel.anchorNode, sel.anchorOffset);
+      return range.toString();
+    } catch (e) {
+      // Fall through to full text
+    }
+  }
+
+  // Fallback: use savedRange from when popup opened
+  if (state.savedRange && el.contains(state.savedRange.startContainer)) {
+    try {
+      const range = document.createRange();
+      range.setStart(el, 0);
+      range.setEnd(state.savedRange.endContainer, state.savedRange.endOffset);
+      return range.toString();
+    } catch (e) {
+      // Fall through to full text
+    }
+  }
+
+  return el.textContent;
 }
 
 // ============================================
@@ -1221,7 +1310,9 @@ function updateResults() {
   const list = state.popupContainer.querySelector(".blocknotes-list");
   if (!list) return;
 
-  const query = extractQuery();
+  // Use cursor-aware text for search so content after cursor
+  // (e.g., Gmail quoted replies with URLs) doesn't interfere
+  const query = extractQueryForSearch();
   const filterType = state.popupFilterType || "both";
   const sortType = state.popupSortType || null;
   const matches = filterNotes(query, filterType, sortType);
@@ -1234,9 +1325,10 @@ function updateResults() {
 
   renderResults(list, matches, query, commandMatches);
 
-  // Auto-scroll to the first result if there are any matches
-  if ((matches.length > 0 || commandMatches.length > 0) && list.children.length > 0) {
-    list.children[0].scrollIntoView({ block: "nearest" });
+  // Auto-scroll to the first selectable item (skip section headers)
+  const firstItem = list.querySelector(".blocknotes-item");
+  if (firstItem) {
+    firstItem.scrollIntoView({ block: "nearest" });
   }
 }
 
@@ -1253,6 +1345,26 @@ function extractQuery() {
   const lastSlash = value.lastIndexOf("/");
 
   // Return everything after the last slash, keep spaces and numbers
+  if (lastSlash >= 0) {
+    return value.substring(lastSlash + 1).trim();
+  }
+  return "";
+}
+
+// Cursor-aware version of extractQuery, used only for popup search filtering.
+// Uses text up to cursor so content after cursor (Gmail quoted replies, signatures
+// with URLs) doesn't interfere with slash detection.
+function extractQueryForSearch() {
+  if (
+    window.location.hostname.includes("docs.google.com") &&
+    state.popupSearchQuery !== undefined
+  ) {
+    return state.popupSearchQuery;
+  }
+
+  const value = getValueUpToCursor(state.lastFocusedElement);
+  const lastSlash = value.lastIndexOf("/");
+
   if (lastSlash >= 0) {
     return value.substring(lastSlash + 1).trim();
   }
@@ -1357,7 +1469,7 @@ function filterCommands(query) {
 }
 
 function getTextBeforeSlash() {
-  const value = getValue(state.lastFocusedElement);
+  const value = getValueUpToCursor(state.lastFocusedElement);
   const lastSlash = value.lastIndexOf("/");
   if (lastSlash >= 0) return value.substring(0, lastSlash).trim();
   return value.trim();
@@ -1495,7 +1607,7 @@ async function executeCommand(command) {
 
   const contextText = getTextBeforeSlash();
 
-  if (!contextText) {
+  if (!contextText && command.requiresContext) {
     showToast("No text to transform", "Type some text before /command");
     return;
   }
@@ -1686,6 +1798,7 @@ function renderResults(list, matches, query = "", commandMatches = []) {
     selectableIndex++;
   }
 
+  // Render notes first
   if (!hasQuery && recentlyUsed.length > 0) {
     addSectionHeader("Recently Used");
     recentlyUsed.forEach(addNoteItem);
@@ -1697,29 +1810,35 @@ function renderResults(list, matches, query = "", commandMatches = []) {
     matches.forEach(addNoteItem);
   }
 
-  // Render commands section
+  // Render commands after notes
   if (commandMatches.length > 0) {
     addSectionHeader("Commands");
     commandMatches.forEach((cmd) => {
       const li = document.createElement("li");
       li.className = "blocknotes-item blocknotes-command";
       li.dataset.commandId = cmd.id;
+      li.dataset.commandCategory = cmd.category;
 
+      const catColor = COMMAND_CATEGORY_COLORS[cmd.category] || "#8b5cf6";
       const isRunning = state.isCommandRunning && state.activeCommandId === cmd.id;
       const spinnerHtml = isRunning
-        ? `<span class="blocknotes-spinner" style="width: 14px; height: 14px; border: 2px solid #ffffff33; border-top-color: #8b5cf6; border-radius: 50%; display: inline-block; animation: blocknotes-spin 0.6s linear infinite; flex-shrink: 0;"></span>`
+        ? `<span class="blocknotes-spinner" style="width: 14px; height: 14px; border: 2px solid #ffffff33; border-top-color: ${catColor}; border-radius: 50%; display: inline-block; animation: blocknotes-spin 0.6s linear infinite; flex-shrink: 0;"></span>`
         : "";
 
+      const descText = cmd.desc || "";
+      const descHtml = descText.length > 50 ? escapeHtml(descText.substring(0, 50)) + "..." : escapeHtml(descText);
+
       li.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">
           <span style="font-weight: 600; font-size: 13px; color: #f1f5f9; flex: 1;">${escapeHtml(cmd.label)}</span>
-          <span style="font-size: 9px; padding: 1px 6px; background: #334155; color: #8b5cf6; border-radius: 4px; font-weight: 600; flex-shrink: 0;">${escapeHtml(cmd.category)}</span>
+          <span style="font-size: 9px; padding: 1px 6px; background: #334155; color: ${catColor}; border-radius: 4px; font-weight: 600; flex-shrink: 0;">${escapeHtml(cmd.category)}</span>
           ${spinnerHtml}
         </div>
+        <div style="font-size: 12px; color: #b8c9e2; line-height: 1.3; margin-left: 0;">${descHtml}</div>
       `;
 
       const currentIndex = selectableIndex;
-      li.style.cssText = getCommandItemStyles(currentIndex === state.selectedIndex);
+      li.style.cssText = getCommandItemStyles(currentIndex === state.selectedIndex, catColor);
 
       li.addEventListener("mouseenter", () => selectItem(currentIndex));
       li.addEventListener("click", () => {
@@ -1752,7 +1871,7 @@ function getItemStyles(isSelected) {
   `; // #1e293b
 }
 
-function getCommandItemStyles(isSelected) {
+function getCommandItemStyles(isSelected, color = "#8b5cf6") {
   return `
     padding: 7px 10px;
     margin: 2px 0;
@@ -1760,7 +1879,7 @@ function getCommandItemStyles(isSelected) {
     cursor: pointer;
     transition: all 0.15s ease;
     background: ${isSelected ? "#20324b" : "#20324bd4"};
-    border-left: ${isSelected ? "4px solid #8b5cf6" : "2px solid transparent"};
+    border-left: ${isSelected ? `4px solid ${color}` : "2px solid transparent"};
   `;
 }
 
@@ -1772,9 +1891,13 @@ function selectItem(index) {
   const selectableItems = list.querySelectorAll(".blocknotes-item");
   selectableItems.forEach((item, i) => {
     const isCommand = item.classList.contains("blocknotes-command");
-    item.style.cssText = isCommand
-      ? getCommandItemStyles(i === index)
-      : getItemStyles(i === index);
+    if (isCommand) {
+      const cat = item.dataset.commandCategory || "";
+      const catColor = COMMAND_CATEGORY_COLORS[cat] || "#8b5cf6";
+      item.style.cssText = getCommandItemStyles(i === index, catColor);
+    } else {
+      item.style.cssText = getItemStyles(i === index);
+    }
   });
 
   // Scroll to selected item
@@ -4095,7 +4218,7 @@ function showQuickSaveButton() {
       <polyline points="17 21 17 13 7 13 7 21"/>
       <polyline points="7 3 7 8 15 8"/>
     </svg>
-    <span>Note</span>
+    <span>BlockNote</span>
   `;
 
   button.style.cssText = `
@@ -4109,7 +4232,8 @@ function showQuickSaveButton() {
     background: rgba(15, 23, 42, 0.65) !important;
     color: #fff !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    border-radius: 4px !important;
+    border-radius: 47px !important;
+    overflow: hidden;
     font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
     font-size: 12px !important;
     font-weight: 500 !important;
