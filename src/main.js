@@ -3004,7 +3004,7 @@ function initWalkthrough() {
 
     modal.style.display = 'flex';
     let currentStep = 1;
-    const totalSteps = 4;
+    const totalSteps = 5;
 
     const updateStep = (step) => {
       // Hide all steps
